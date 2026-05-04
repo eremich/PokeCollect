@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface CardRepository {
     fun getCardsPaged(query: String?): Flow<PagingData<Card>>
+    suspend fun getCardById(id: String): Card
 }

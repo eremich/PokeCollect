@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,20 +26,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import coil3.compose.AsyncImage
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.domain.model.Card
+import com.yeromich.pokecollect.ui.components.CardGridItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatalogScreen(viewModel: CatalogViewModel = hiltViewModel()) {
+fun CatalogScreen(
+    onCardClick: (Card) -> Unit,
+    viewModel: CatalogViewModel = hiltViewModel()
+) {
     val query by viewModel.query.collectAsState()
     val cards = viewModel.cards.collectAsLazyPagingItems()
 
@@ -104,7 +104,9 @@ fun CatalogScreen(viewModel: CatalogViewModel = hiltViewModel()) {
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(count = cards.itemCount) { index ->
-                                cards[index]?.let { CardGridItem(it) }
+                                cards[index]?.let { card ->
+                                    CardGridItem(card = card, onClick = { onCardClick(card) })
+                                }
                             }
                             if (cards.loadState.append is LoadState.Loading) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -123,33 +125,5 @@ fun CatalogScreen(viewModel: CatalogViewModel = hiltViewModel()) {
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CardGridItem(card: Card) {
-    Column {
-        AsyncImage(
-            model = card.imageSmall,
-            contentDescription = card.name,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.72f),
-            contentScale = ContentScale.Crop
-        )
-        Text(
-            text = card.name,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-        )
-        Text(
-            text = "${card.number} \u2022 ${card.setName}",
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-        )
     }
 }

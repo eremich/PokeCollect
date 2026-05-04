@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.yeromich.pokecollect.R
+import com.yeromich.pokecollect.ui.screens.CardDetailScreen
 import com.yeromich.pokecollect.ui.screens.CatalogScreen
 import com.yeromich.pokecollect.ui.screens.CollectionScreen
 import com.yeromich.pokecollect.ui.screens.ScannerScreen
@@ -30,7 +31,7 @@ sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector)
     object Catalog : Screen("catalog", R.string.nav_catalog, Icons.Filled.Search)
 }
 
-private val screens = listOf(Screen.Collection, Screen.Scanner, Screen.Catalog)
+private val bottomBarScreens = listOf(Screen.Collection, Screen.Scanner, Screen.Catalog)
 
 @Composable
 fun PokeCollectApp() {
@@ -38,24 +39,28 @@ fun PokeCollectApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    val showBottomBar = bottomBarScreens.any { it.route == currentDestination?.route }
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                screens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
-                        label = { Text(stringResource(screen.labelRes)) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            if (showBottomBar) {
+                NavigationBar {
+                    bottomBarScreens.forEach { screen ->
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
+                            label = { Text(stringResource(screen.labelRes)) },
+                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -64,9 +69,20 @@ fun PokeCollectApp() {
             navController = navController,
             startDestination = Screen.Collection.route
         ) {
-            composable(Screen.Collection.route) { CollectionScreen() }
+            composable(Screen.Collection.route) {
+                CollectionScreen(
+                    onCardClick = { card -> navController.navigate("card/${card.id}") }
+                )
+            }
             composable(Screen.Scanner.route) { ScannerScreen() }
-            composable(Screen.Catalog.route) { CatalogScreen() }
+            composable(Screen.Catalog.route) {
+                CatalogScreen(
+                    onCardClick = { card -> navController.navigate("card/${card.id}") }
+                )
+            }
+            composable("card/{cardId}") {
+                CardDetailScreen(onNavigateBack = { navController.popBackStack() })
+            }
         }
     }
 }
