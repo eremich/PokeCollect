@@ -6,7 +6,6 @@ import androidx.paging.PagingData
 import com.yeromich.pokecollect.data.remote.CardPagingSource
 import com.yeromich.pokecollect.data.remote.PokemonTcgApi
 import com.yeromich.pokecollect.domain.model.Card
-import com.yeromich.pokecollect.domain.model.toDomain
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -21,6 +20,4 @@ class CardRepositoryImpl @Inject constructor(
         ),
         pagingSourceFactory = { CardPagingSource(api, query) }
     ).flow
-
-    override suspend fun getCardById(id: String): Card = api.getCard(id).data.toDomain()
 }

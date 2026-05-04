@@ -1,7 +1,6 @@
 package com.yeromich.pokecollect.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -39,21 +36,13 @@ fun CardDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: CardDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isInCollection by viewModel.isInCollection.collectAsStateWithLifecycle()
     val quantity by viewModel.quantity.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    if (uiState is CardDetailUiState.Success) {
-                        Text(
-                            text = (uiState as CardDetailUiState.Success).card.name,
-                            maxLines = 1
-                        )
-                    }
-                },
+                title = { Text(viewModel.card.name, maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -62,23 +51,13 @@ fun CardDetailScreen(
             )
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center
-        ) {
-            when (val state = uiState) {
-                is CardDetailUiState.Loading -> CircularProgressIndicator()
-                is CardDetailUiState.Error -> Text(state.message)
-                is CardDetailUiState.Success -> CardDetailContent(
-                    card = state.card,
-                    isInCollection = isInCollection,
-                    quantity = quantity,
-                    onAddOrIncrement = viewModel::addOrIncrement
-                )
-            }
-        }
+        CardDetailContent(
+            card = viewModel.card,
+            isInCollection = isInCollection,
+            quantity = quantity,
+            onAddOrIncrement = viewModel::addOrIncrement,
+            modifier = Modifier.padding(innerPadding)
+        )
     }
 }
 
@@ -87,10 +66,11 @@ private fun CardDetailContent(
     card: Card,
     isInCollection: Boolean,
     quantity: Int,
-    onAddOrIncrement: () -> Unit
+    onAddOrIncrement: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),

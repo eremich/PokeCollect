@@ -15,15 +15,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.yeromich.pokecollect.R
+import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.ui.screens.CardDetailScreen
 import com.yeromich.pokecollect.ui.screens.CatalogScreen
 import com.yeromich.pokecollect.ui.screens.CollectionScreen
 import com.yeromich.pokecollect.ui.screens.ScannerScreen
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.net.URLEncoder
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
     object Collection : Screen("collection", R.string.nav_collection, Icons.Filled.Inventory2)
@@ -32,6 +38,11 @@ sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector)
 }
 
 private val bottomBarScreens = listOf(Screen.Collection, Screen.Scanner, Screen.Catalog)
+
+private fun Card.toEncodedJson(): String {
+    val json = Json.encodeToString(this)
+    return URLEncoder.encode(json, "UTF-8").replace("+", "%20")
+}
 
 @Composable
 fun PokeCollectApp() {
@@ -71,16 +82,19 @@ fun PokeCollectApp() {
         ) {
             composable(Screen.Collection.route) {
                 CollectionScreen(
-                    onCardClick = { card -> navController.navigate("card/${card.id}") }
+                    onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") }
                 )
             }
             composable(Screen.Scanner.route) { ScannerScreen() }
             composable(Screen.Catalog.route) {
                 CatalogScreen(
-                    onCardClick = { card -> navController.navigate("card/${card.id}") }
+                    onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") }
                 )
             }
-            composable("card/{cardId}") {
+            composable(
+                route = "card/{cardJson}",
+                arguments = listOf(navArgument("cardJson") { type = NavType.StringType })
+            ) {
                 CardDetailScreen(onNavigateBack = { navController.popBackStack() })
             }
         }

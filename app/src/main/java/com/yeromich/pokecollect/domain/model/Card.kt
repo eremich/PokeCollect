@@ -1,5 +1,8 @@
 package com.yeromich.pokecollect.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Card(
     val id: String,
     val name: String,
