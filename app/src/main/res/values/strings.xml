@@ -1,3 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PokeCollect</string>
+    <string name="screen_collection_title">Моя коллекция</string>
+    <string name="screen_collection_empty">Коллекция (пусто)</string>
+    <string name="screen_scanner_title">Сканер</string>
+    <string name="screen_scanner_soon">Сканер (скоро)</string>
+    <string name="screen_catalog_title">Каталог</string>
+    <string name="screen_catalog_soon">Каталог (скоро)</string>
+    <string name="nav_collection">Коллекция</string>
+    <string name="nav_scanner">Сканер</string>
+    <string name="nav_catalog">Каталог</string>
 </resources>
