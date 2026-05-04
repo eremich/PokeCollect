@@ -10,4 +10,8 @@
     <string name="nav_collection">Коллекция</string>
     <string name="nav_scanner">Сканер</string>
     <string name="nav_catalog">Каталог</string>
+    <string name="catalog_search_hint">Поиск карт…</string>
+    <string name="catalog_empty">Ничего не найдено</string>
+    <string name="catalog_error_generic">Ошибка загрузки</string>
+    <string name="catalog_error_retry">Повторить</string>
 </resources>
