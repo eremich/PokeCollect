@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew compileDebugKotlin)",
+      "Bash(where java:*)",
+      "Read(//c/Program Files/Android/Android Studio/jbr/bin/**)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew compileDebugKotlin)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}

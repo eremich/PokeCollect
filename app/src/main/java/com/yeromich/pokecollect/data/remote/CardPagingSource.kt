@@ -20,8 +20,11 @@ class CardPagingSource(
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Card> {
         val page = params.key ?: 1
         return try {
-            val queryStr = query?.takeIf { it.isNotBlank() }?.let { "name:\"*$it*\"" }
-            val response = api.getCards(query = queryStr, page = page, pageSize = PAGE_SIZE)
+            val response = api.getCards(
+                query = query?.takeIf { it.isNotBlank() },
+                page = page,
+                pageSize = PAGE_SIZE
+            )
             LoadResult.Page(
                 data = response.data.map { it.toDomain() },
                 prevKey = if (page == 1) null else page - 1,

@@ -7,9 +7,11 @@
     <string name="screen_scanner_soon">Сканер (скоро)</string>
     <string name="screen_catalog_title">Каталог</string>
     <string name="screen_catalog_soon">Каталог (скоро)</string>
+    <string name="screen_sets_title">Сеты</string>
     <string name="nav_collection">Коллекция</string>
     <string name="nav_scanner">Сканер</string>
     <string name="nav_catalog">Каталог</string>
+    <string name="nav_sets">Сеты</string>
     <string name="catalog_search_hint">Поиск карт…</string>
     <string name="catalog_empty">Ничего не найдено</string>
     <string name="catalog_error_generic">Ошибка загрузки</string>
@@ -18,4 +20,6 @@
     <string name="collection_empty_hint">Коллекция пуста. Найдите карту в каталоге и добавьте её.</string>
     <string name="detail_add_to_collection">Добавить в коллекцию</string>
     <string name="detail_in_collection">В коллекции (×%d)</string>
+    <string name="sets_card_count">%d карт</string>
+    <string name="sets_search_all">Поиск по всем картам</string>
 </resources>

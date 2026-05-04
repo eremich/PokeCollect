@@ -4,6 +4,8 @@ import com.yeromich.pokecollect.data.repository.CardRepository
 import com.yeromich.pokecollect.data.repository.CardRepositoryImpl
 import com.yeromich.pokecollect.data.repository.CollectionRepository
 import com.yeromich.pokecollect.data.repository.CollectionRepositoryImpl
+import com.yeromich.pokecollect.data.repository.SetsRepository
+import com.yeromich.pokecollect.data.repository.SetsRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCollectionRepository(impl: CollectionRepositoryImpl): CollectionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSetsRepository(impl: SetsRepositoryImpl): SetsRepository
 }

@@ -3,7 +3,7 @@ package com.yeromich.pokecollect.ui
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,6 +27,7 @@ import com.yeromich.pokecollect.ui.screens.CardDetailScreen
 import com.yeromich.pokecollect.ui.screens.CatalogScreen
 import com.yeromich.pokecollect.ui.screens.CollectionScreen
 import com.yeromich.pokecollect.ui.screens.ScannerScreen
+import com.yeromich.pokecollect.ui.screens.SetsScreen
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.URLEncoder
@@ -34,10 +35,10 @@ import java.net.URLEncoder
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
     object Collection : Screen("collection", R.string.nav_collection, Icons.Filled.Inventory2)
     object Scanner : Screen("scanner", R.string.nav_scanner, Icons.Filled.CameraAlt)
-    object Catalog : Screen("catalog", R.string.nav_catalog, Icons.Filled.Search)
+    object Sets : Screen("sets", R.string.nav_sets, Icons.Filled.Style)
 }
 
-private val bottomBarScreens = listOf(Screen.Collection, Screen.Scanner, Screen.Catalog)
+private val bottomBarScreens = listOf(Screen.Collection, Screen.Scanner, Screen.Sets)
 
 private fun Card.toEncodedJson(): String {
     val json = Json.encodeToString(this)
@@ -86,9 +87,25 @@ fun PokeCollectApp() {
                 )
             }
             composable(Screen.Scanner.route) { ScannerScreen() }
-            composable(Screen.Catalog.route) {
+            composable(Screen.Sets.route) {
+                SetsScreen(
+                    onSetClick = { set ->
+                        val encodedName = URLEncoder.encode(set.name, "UTF-8")
+                        navController.navigate("catalog?setId=${set.id}&setName=$encodedName")
+                    },
+                    onSearchClick = { navController.navigate("catalog") }
+                )
+            }
+            composable(
+                route = "catalog?setId={setId}&setName={setName}",
+                arguments = listOf(
+                    navArgument("setId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("setName") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
+            ) {
                 CatalogScreen(
-                    onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") }
+                    onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(

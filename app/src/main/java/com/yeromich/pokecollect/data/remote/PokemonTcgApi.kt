@@ -2,6 +2,7 @@ package com.yeromich.pokecollect.data.remote
 
 import com.yeromich.pokecollect.data.remote.dto.ApiResponse
 import com.yeromich.pokecollect.data.remote.dto.CardDto
+import com.yeromich.pokecollect.data.remote.dto.SetDto
 import com.yeromich.pokecollect.data.remote.dto.SingleResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -18,4 +19,7 @@ interface PokemonTcgApi {
 
     @GET("cards/{id}")
     suspend fun getCard(@Path("id") id: String): SingleResponse<CardDto>
+
+    @GET("sets")
+    suspend fun getSets(): ApiResponse<SetDto>
 }
