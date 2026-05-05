@@ -66,6 +66,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.graphics.Matrix
+import android.media.ExifInterface
+import android.view.Surface
 import androidx.core.content.ContextCompat
 import com.yeromich.pokecollect.R
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -139,7 +142,11 @@ fun ScannerScreen(onClose: () -> Unit) {
             }
 
             is ScannerState.Ready, is ScannerState.Capturing -> {
-                val previewView = remember { PreviewView(context) }
+                val previewView = remember {
+                    PreviewView(context).apply {
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    }
+                }
 
                 LaunchedEffect(previewView) {
                     val provider = suspendCancellableCoroutine<ProcessCameraProvider> { cont ->
@@ -153,6 +160,7 @@ fun ScannerScreen(onClose: () -> Unit) {
 
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setTargetRotation(previewView.display?.rotation ?: Surface.ROTATION_0)
                         .build()
                     imageCapture = capture
 
@@ -254,7 +262,23 @@ fun ScannerScreen(onClose: () -> Unit) {
             }
 
             is ScannerState.Captured -> {
-                val bitmap = remember(s.file) { BitmapFactory.decodeFile(s.file.absolutePath) }
+                val bitmap = remember(s.file) {
+                    val raw = BitmapFactory.decodeFile(s.file.absolutePath) ?: return@remember null
+                    val orientation = ExifInterface(s.file.absolutePath).getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
+                    )
+                    val degrees = when (orientation) {
+                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                        else -> 0f
+                    }
+                    if (degrees == 0f) raw
+                    else android.graphics.Bitmap.createBitmap(
+                        raw, 0, 0, raw.width, raw.height,
+                        Matrix().apply { postRotate(degrees) }, true
+                    )
+                }
 
                 if (bitmap != null) {
                     Image(
