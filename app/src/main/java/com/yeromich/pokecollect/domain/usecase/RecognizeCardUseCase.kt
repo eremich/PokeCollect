@@ -38,6 +38,11 @@ class RecognizeCardUseCase @Inject constructor(
 
             val imageHeight = bitmap.height
 
+            for (block in visionText.textBlocks) {
+                android.util.Log.d("RecognitionBlocks",
+                    "text='${block.text.take(40)}' top=${block.boundingBox?.top} imgH=$imageHeight")
+            }
+
             var extractedName: String? = null
             var maxWidth = 0f
             for (block in visionText.textBlocks) {

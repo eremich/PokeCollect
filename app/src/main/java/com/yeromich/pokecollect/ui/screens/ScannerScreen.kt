@@ -4,8 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.media.ExifInterface
 import android.net.Uri
 import android.provider.Settings
 import android.view.Surface
@@ -271,20 +269,18 @@ fun ScannerScreen(
             is ScannerUiState.Captured -> {
                 val bitmap = remember(s.file) {
                     val raw = BitmapFactory.decodeFile(s.file.absolutePath) ?: return@remember null
-                    val orientation = ExifInterface(s.file.absolutePath).getAttributeInt(
-                        ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
+                    val exif = androidx.exifinterface.media.ExifInterface(s.file.absolutePath)
+                    val orientation = exif.getAttributeInt(
+                        androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                        androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
                     )
-                    val degrees = when (orientation) {
-                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                        else -> 0f
+                    val matrix = android.graphics.Matrix()
+                    when (orientation) {
+                        6 -> matrix.postRotate(90f)
+                        3 -> matrix.postRotate(180f)
+                        8 -> matrix.postRotate(270f)
                     }
-                    if (degrees == 0f) raw
-                    else android.graphics.Bitmap.createBitmap(
-                        raw, 0, 0, raw.width, raw.height,
-                        Matrix().apply { postRotate(degrees) }, true
-                    )
+                    android.graphics.Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
                 }
 
                 if (bitmap != null) {
@@ -316,7 +312,21 @@ fun ScannerScreen(
 
             is ScannerUiState.Recognizing -> {
                 Box(Modifier.fillMaxSize()) {
-                    val bitmap = remember(s.file) { BitmapFactory.decodeFile(s.file.absolutePath) }
+                    val bitmap = remember(s.file) {
+                        val raw = BitmapFactory.decodeFile(s.file.absolutePath) ?: return@remember null
+                        val exif = androidx.exifinterface.media.ExifInterface(s.file.absolutePath)
+                        val orientation = exif.getAttributeInt(
+                            androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                            androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+                        )
+                        val matrix = android.graphics.Matrix()
+                        when (orientation) {
+                            6 -> matrix.postRotate(90f)
+                            3 -> matrix.postRotate(180f)
+                            8 -> matrix.postRotate(270f)
+                        }
+                        android.graphics.Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
+                    }
                     bitmap?.let {
                         Image(
                             bitmap = it.asImageBitmap(),
@@ -378,7 +388,21 @@ private fun RecognizedContent(
     onRetake: () -> Unit,
     onCardSelected: (Card) -> Unit
 ) {
-    val bitmap = remember(file) { BitmapFactory.decodeFile(file.absolutePath) }
+    val bitmap = remember(file) {
+        val raw = BitmapFactory.decodeFile(file.absolutePath) ?: return@remember null
+        val exif = androidx.exifinterface.media.ExifInterface(file.absolutePath)
+        val orientation = exif.getAttributeInt(
+            androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+        )
+        val matrix = android.graphics.Matrix()
+        when (orientation) {
+            6 -> matrix.postRotate(90f)
+            3 -> matrix.postRotate(180f)
+            8 -> matrix.postRotate(270f)
+        }
+        android.graphics.Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
+    }
     var showSheet by remember { mutableStateOf(true) }
 
     Box(Modifier.fillMaxSize()) {
