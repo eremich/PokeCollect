@@ -1,11 +1,14 @@
 package com.yeromich.pokecollect.domain.usecase
 
+import android.content.Context
 import android.graphics.BitmapFactory
+import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.yeromich.pokecollect.data.repository.CardRepository
 import com.yeromich.pokecollect.domain.model.Card
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -21,14 +24,15 @@ sealed class RecognitionResult {
 }
 
 class RecognizeCardUseCase @Inject constructor(
-    private val cardRepository: CardRepository
+    private val cardRepository: CardRepository,
+    @param:ApplicationContext private val context: Context
 ) {
     operator fun invoke(imageFile: File): Flow<RecognitionResult> = flow {
         try {
             val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
                 ?: run { emit(RecognitionResult.Error("Не удалось прочитать снимок")); return@flow }
 
-            val image = InputImage.fromBitmap(bitmap, 0)
+            val image = InputImage.fromFilePath(context, Uri.fromFile(imageFile))
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             val visionText = recognizer.process(image).await()
 
