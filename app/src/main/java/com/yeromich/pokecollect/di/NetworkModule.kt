@@ -57,6 +57,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("tcgdex")
     fun provideTcgdexApi(@Named("tcgdex") retrofit: Retrofit): TcgdexApi =
         retrofit.create(TcgdexApi::class.java)
 }
