@@ -65,28 +65,26 @@ class RecognizeCardUseCase @Inject constructor(
 
             android.util.Log.d("Recognition", "name=$extractedName number=$extractedNumber")
 
-            if (extractedName == null && extractedNumber == null) {
-                emit(RecognitionResult.NotFound(null, null)); return@flow
+            if (extractedName != null) {
+                val result = cardRepository.searchCards(extractedName, 20)
+                result.fold(
+                    onSuccess = { cards ->
+                        android.util.Log.d("Recognition", "found=${cards.size}")
+                        val filtered = if (extractedNumber != null)
+                            cards.filter {
+                                it.number == extractedNumber ||
+                                        it.number == extractedNumber.padStart(3, '0')
+                            }
+                        else cards
+                        val final = if (filtered.isEmpty()) cards else filtered
+                        if (final.isEmpty()) emit(RecognitionResult.NotFound(extractedName, extractedNumber))
+                        else emit(RecognitionResult.Success(final))
+                    },
+                    onFailure = { emit(RecognitionResult.Error(it.message ?: "Ошибка")) }
+                )
+            } else {
+                emit(RecognitionResult.NotFound(null, extractedNumber))
             }
-
-            val query = when {
-                extractedName != null && extractedNumber != null ->
-                    "name:\"$extractedName\" number:$extractedNumber"
-                extractedName != null -> "name:\"$extractedName\""
-                else -> { emit(RecognitionResult.NotFound(null, extractedNumber)); return@flow }
-            }
-
-            android.util.Log.d("Recognition", "query=$query")
-
-            val result = cardRepository.searchCards(query, pageSize = 20)
-            result.fold(
-                onSuccess = { cards ->
-                    android.util.Log.d("Recognition", "found=${cards.size}")
-                    if (cards.isEmpty()) emit(RecognitionResult.NotFound(extractedName, extractedNumber))
-                    else emit(RecognitionResult.Success(cards))
-                },
-                onFailure = { emit(RecognitionResult.Error(it.message ?: "Ошибка поиска")) }
-            )
         } catch (e: Exception) {
             emit(RecognitionResult.Error(e.message ?: "Неизвестная ошибка"))
         }
