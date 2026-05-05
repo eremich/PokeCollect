@@ -51,7 +51,8 @@ fun PokeCollectApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val showBottomBar = bottomBarScreens.any { it.route == currentDestination?.route }
+    val showBottomBar = currentDestination?.route == Screen.Collection.route ||
+            currentDestination?.route == Screen.Sets.route
 
     Scaffold(
         bottomBar = {
@@ -86,7 +87,9 @@ fun PokeCollectApp() {
                     onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") }
                 )
             }
-            composable(Screen.Scanner.route) { ScannerScreen() }
+            composable(Screen.Scanner.route) {
+                ScannerScreen(onClose = { navController.popBackStack() })
+            }
             composable(Screen.Sets.route) {
                 SetsScreen(
                     onSetClick = { set ->

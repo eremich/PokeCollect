@@ -5,7 +5,11 @@
       "Bash(where java:*)",
       "Read(//c/Program Files/Android/Android Studio/jbr/bin/**)",
       "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew compileDebugKotlin)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Projects\\\\PokeCollect\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }

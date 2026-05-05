@@ -22,4 +22,14 @@
     <string name="detail_in_collection">В коллекции (×%d)</string>
     <string name="sets_card_count">%d карт</string>
     <string name="sets_search_all">Поиск по всем картам</string>
+    <string name="scanner_permission_title">Для сканирования карт нужен доступ к камере</string>
+    <string name="scanner_permission_grant">Разрешить</string>
+    <string name="scanner_permission_denied">Разрешите доступ к камере в настройках</string>
+    <string name="scanner_open_settings">Открыть настройки</string>
+    <string name="scanner_hint">Наведите камеру на карту</string>
+    <string name="scanner_capture">Сделать снимок</string>
+    <string name="scanner_retake">Переснять</string>
+    <string name="scanner_use">Использовать</string>
+    <string name="scanner_error_back">Назад</string>
+    <string name="scanner_close">Закрыть</string>
 </resources>
