@@ -88,7 +88,10 @@ fun PokeCollectApp() {
                 )
             }
             composable(Screen.Scanner.route) {
-                ScannerScreen(onClose = { navController.popBackStack() })
+                ScannerScreen(
+                    onClose = { navController.popBackStack() },
+                    onCardSelected = { card -> navController.navigate("card/${card.toEncodedJson()}") }
+                )
             }
             composable(Screen.Sets.route) {
                 SetsScreen(

@@ -32,4 +32,6 @@
     <string name="scanner_use">Использовать</string>
     <string name="scanner_error_back">Назад</string>
     <string name="scanner_close">Закрыть</string>
+    <string name="scanner_recognizing">Распознаю...</string>
+    <string name="scanner_not_found">Не удалось распознать карту</string>
 </resources>

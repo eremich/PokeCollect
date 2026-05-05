@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.provider.Settings
-import android.widget.Toast
+import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -18,6 +20,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,13 +33,20 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,48 +70,45 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import android.graphics.Matrix
-import android.media.ExifInterface
-import android.view.Surface
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.yeromich.pokecollect.R
+import com.yeromich.pokecollect.domain.model.Card
+import com.yeromich.pokecollect.domain.usecase.RecognitionResult
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
 
-sealed class ScannerState {
-    object NoPermission : ScannerState()
-    object PermissionDenied : ScannerState()
-    object Ready : ScannerState()
-    object Capturing : ScannerState()
-    data class Captured(val file: File) : ScannerState()
-    data class Error(val message: String) : ScannerState()
-}
-
 @Composable
-fun ScannerScreen(onClose: () -> Unit) {
+fun ScannerScreen(
+    onClose: () -> Unit,
+    onCardSelected: (Card) -> Unit,
+    viewModel: ScannerViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
-    var state by remember { mutableStateOf<ScannerState>(ScannerState.NoPermission) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        state = if (granted) ScannerState.Ready else ScannerState.PermissionDenied
+        if (granted) viewModel.onPermissionGranted() else viewModel.onPermissionDenied()
     }
 
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            state = ScannerState.Ready
+            viewModel.onPermissionGranted()
         } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
@@ -113,9 +120,9 @@ fun ScannerScreen(onClose: () -> Unit) {
             .background(Color.Black)
     ) {
         when (val s = state) {
-            is ScannerState.NoPermission -> Unit
+            is ScannerUiState.NoPermission -> Unit
 
-            is ScannerState.PermissionDenied -> {
+            is ScannerUiState.PermissionDenied -> {
                 Column(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -141,7 +148,7 @@ fun ScannerScreen(onClose: () -> Unit) {
                 CloseButton(onClose, Modifier.align(Alignment.TopEnd).statusBarsPadding())
             }
 
-            is ScannerState.Ready, is ScannerState.Capturing -> {
+            is ScannerUiState.Ready, is ScannerUiState.Capturing -> {
                 val previewView = remember {
                     PreviewView(context).apply {
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
@@ -233,19 +240,19 @@ fun ScannerScreen(onClose: () -> Unit) {
 
                 FloatingActionButton(
                     onClick = {
-                        if (state is ScannerState.Ready) {
-                            state = ScannerState.Capturing
+                        if (state is ScannerUiState.Ready) {
+                            viewModel.onCapturing()
                             val file = File(context.cacheDir, "card_${System.currentTimeMillis()}.jpg")
                             imageCapture?.takePicture(
                                 ImageCapture.OutputFileOptions.Builder(file).build(),
                                 ContextCompat.getMainExecutor(context),
                                 object : ImageCapture.OnImageSavedCallback {
                                     override fun onImageSaved(results: ImageCapture.OutputFileResults) {
-                                        state = ScannerState.Captured(file)
+                                        viewModel.onCaptured(file)
                                     }
 
                                     override fun onError(exception: ImageCaptureException) {
-                                        state = ScannerState.Error(exception.message ?: "Error")
+                                        viewModel.onRetake()
                                     }
                                 }
                             )
@@ -261,7 +268,7 @@ fun ScannerScreen(onClose: () -> Unit) {
                 }
             }
 
-            is ScannerState.Captured -> {
+            is ScannerUiState.Captured -> {
                 val bitmap = remember(s.file) {
                     val raw = BitmapFactory.decodeFile(s.file.absolutePath) ?: return@remember null
                     val orientation = ExifInterface(s.file.absolutePath).getAttributeInt(
@@ -296,12 +303,10 @@ fun ScannerScreen(onClose: () -> Unit) {
                         .padding(bottom = 32.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedButton(onClick = { state = ScannerState.Ready }) {
+                    OutlinedButton(onClick = { viewModel.onRetake() }) {
                         Text(stringResource(R.string.scanner_retake))
                     }
-                    Button(onClick = {
-                        Toast.makeText(context, s.file.absolutePath, Toast.LENGTH_LONG).show()
-                    }) {
+                    Button(onClick = { viewModel.onCaptured(s.file) }) {
                         Text(stringResource(R.string.scanner_use))
                     }
                 }
@@ -309,18 +314,146 @@ fun ScannerScreen(onClose: () -> Unit) {
                 CloseButton(onClose, Modifier.align(Alignment.TopEnd).statusBarsPadding())
             }
 
-            is ScannerState.Error -> {
+            is ScannerUiState.Recognizing -> {
+                Box(Modifier.fillMaxSize()) {
+                    val bitmap = remember(s.file) { BitmapFactory.decodeFile(s.file.absolutePath) }
+                    bitmap?.let {
+                        Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.White
+                    )
+                    Text(
+                        stringResource(R.string.scanner_recognizing),
+                        color = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(top = 80.dp)
+                    )
+                    CloseButton(
+                        { viewModel.onRetake() },
+                        Modifier.align(Alignment.TopEnd).statusBarsPadding()
+                    )
+                }
+            }
+
+            is ScannerUiState.Recognized -> {
+                RecognizedContent(
+                    file = s.file,
+                    result = s.result,
+                    onRetake = { viewModel.onRetake() },
+                    onCardSelected = onCardSelected
+                )
+            }
+
+            is ScannerUiState.Error -> {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(s.message, color = Color.White, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = { state = ScannerState.Ready }) {
+                    Button(onClick = { viewModel.onRetake() }) {
                         Text(stringResource(R.string.scanner_error_back))
                     }
                 }
                 CloseButton(onClose, Modifier.align(Alignment.TopEnd).statusBarsPadding())
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecognizedContent(
+    file: File,
+    result: RecognitionResult,
+    onRetake: () -> Unit,
+    onCardSelected: (Card) -> Unit
+) {
+    val bitmap = remember(file) { BitmapFactory.decodeFile(file.absolutePath) }
+    var showSheet by remember { mutableStateOf(true) }
+
+    Box(Modifier.fillMaxSize()) {
+        bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+
+        when (result) {
+            is RecognitionResult.Success -> {
+                if (result.candidates.size == 1) {
+                    LaunchedEffect(Unit) { onCardSelected(result.candidates.first()) }
+                } else if (showSheet) {
+                    ModalBottomSheet(onDismissRequest = { showSheet = false }) {
+                        Text(
+                            "Найдено ${result.candidates.size} вариантов",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        LazyColumn {
+                            items(result.candidates) { card ->
+                                ListItem(
+                                    headlineContent = { Text(card.name) },
+                                    supportingContent = { Text("${card.setName} · ${card.number}") },
+                                    leadingContent = {
+                                        AsyncImage(
+                                            model = card.imageSmall,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                    },
+                                    modifier = Modifier.clickable { onCardSelected(card) }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
+            }
+
+            is RecognitionResult.NotFound -> {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        stringResource(R.string.scanner_not_found),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    result.extractedName?.let { Text("Имя: $it", color = Color.White.copy(alpha = 0.7f)) }
+                    result.extractedNumber?.let { Text("Номер: $it", color = Color.White.copy(alpha = 0.7f)) }
+                    Spacer(Modifier.height(24.dp))
+                    Button(onClick = onRetake) { Text(stringResource(R.string.scanner_retake)) }
+                }
+            }
+
+            is RecognitionResult.Error -> {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(result.message, color = Color.White, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onRetake) { Text(stringResource(R.string.scanner_retake)) }
+                }
             }
         }
     }
