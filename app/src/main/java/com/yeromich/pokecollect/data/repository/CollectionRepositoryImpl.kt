@@ -24,12 +24,14 @@ class CollectionRepositoryImpl @Inject constructor(
 
     override fun getCount(): Flow<Int> = dao.getCount()
 
-    override suspend fun addOrIncrement(card: Card) {
-        val existing = dao.getById(card.id).first()
+    override suspend fun addOrIncrement(card: Card) = addOrIncrementVariant(card, "Normal")
+
+    override suspend fun addOrIncrementVariant(card: Card, variant: String) {
+        val existing = dao.getByIdAndVariant(card.id, variant).first()
         if (existing != null) {
-            dao.incrementQuantity(card.id)
+            dao.incrementByVariant(card.id, variant)
         } else {
-            dao.upsert(card.toEntity())
+            dao.upsert(card.toEntity().copy(variant = variant))
         }
     }
 

@@ -24,7 +24,26 @@ data class TcgdexCardDto(
     val rarity: String? = null,
     val set: TcgdexSetBriefDto? = null,
     val attacks: List<TcgdexAttackDto>? = null,
-    val pricing: TcgdexPricingDto? = null
+    val pricing: TcgdexPricingDto? = null,
+    val variants: TcgdexVariantsDto? = null,
+    val variants_detailed: List<TcgdexVariantDetailDto>? = null
+)
+
+@Serializable
+data class TcgdexVariantsDto(
+    val normal: Boolean? = null,
+    val reverse: Boolean? = null,
+    val holo: Boolean? = null,
+    val firstEdition: Boolean? = null
+)
+
+@Serializable
+data class TcgdexVariantDetailDto(
+    val type: String,
+    val subtype: String? = null,
+    val size: String? = null,
+    val stamp: List<String>? = null,
+    val variantId: String? = null
 )
 
 @Serializable

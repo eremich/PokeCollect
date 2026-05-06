@@ -9,5 +9,6 @@ interface CollectionRepository {
     fun getQuantity(id: String): Flow<Int>
     fun getCount(): Flow<Int>
     suspend fun addOrIncrement(card: Card)
+    suspend fun addOrIncrementVariant(card: Card, variant: String)
     suspend fun remove(id: String)
 }

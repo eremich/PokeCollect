@@ -1,11 +1,11 @@
 package com.yeromich.pokecollect.data.local
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "collected_cards")
+@Entity(tableName = "collected_cards", primaryKeys = ["id", "variant"])
 data class CollectedCardEntity(
-    @PrimaryKey val id: String,
+    val id: String,
+    val variant: String = "Normal",
     val name: String,
     val number: String,
     val setName: String,

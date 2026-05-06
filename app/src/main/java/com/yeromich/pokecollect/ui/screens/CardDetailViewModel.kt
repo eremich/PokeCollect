@@ -47,6 +47,30 @@ class CardDetailViewModel @Inject constructor(
         .map { it?.pricing?.cardmarket }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    val availableVariants: StateFlow<List<String>> = _cardDetails
+        .map { details ->
+            if (details == null) return@map listOf("Normal")
+            val detailed = details.variants_detailed
+            if (!detailed.isNullOrEmpty()) {
+                detailed.map { variantDisplayNames[it.type] ?: it.type }.distinct()
+            } else {
+                val v = details.variants
+                if (v != null) {
+                    buildList {
+                        if (v.normal == true) add("Normal")
+                        if (v.holo == true) add("Holo")
+                        if (v.reverse == true) add("Reverse Holo")
+                        if (v.firstEdition == true) add("1. Auflage")
+                    }.takeIf { it.isNotEmpty() } ?: listOf("Normal")
+                } else {
+                    listOf("Normal")
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), listOf("Normal"))
+
+    val selectedVariant = MutableStateFlow("Normal")
+
     init {
         viewModelScope.launch {
             android.util.Log.d("CardDetail", "Loading card: ${card.id}")
@@ -61,9 +85,25 @@ class CardDetailViewModel @Inject constructor(
         }
     }
 
+    fun selectVariant(variant: String) {
+        selectedVariant.value = variant
+    }
+
     fun addOrIncrement() {
         viewModelScope.launch {
-            collectionRepository.addOrIncrement(card)
+            collectionRepository.addOrIncrementVariant(card, selectedVariant.value)
         }
+    }
+
+    companion object {
+        private val variantDisplayNames = mapOf(
+            "Normal" to "Normal",
+            "normal" to "Normal",
+            "Reverse" to "Reverse Holo",
+            "reverse" to "Reverse Holo",
+            "Holo" to "Holo",
+            "holo" to "Holo",
+            "firstEdition" to "1. Auflage"
+        )
     }
 }
