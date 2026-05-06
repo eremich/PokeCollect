@@ -36,6 +36,6 @@ fun TcgdexSetDto.toDomain() = CardSet(
     series = serie?.name ?: "Другое",
     releaseDate = releaseDate ?: "",
     total = cardCount?.official ?: cardCount?.total ?: 0,
-    logoUrl = if (logo != null) "$logo/logo.webp" else "",
-    symbolUrl = if (symbol != null) "$symbol/symbol.webp" else ""
+    logoUrl = if (logo != null) "${logo}.webp" else "",
+    symbolUrl = if (symbol != null) "${symbol}.webp" else ""
 )
