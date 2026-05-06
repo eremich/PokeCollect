@@ -26,15 +26,14 @@ class SetsViewModel @Inject constructor(
         .map { result ->
             result.fold(
                 onSuccess = { sets ->
-                    val groups = sets
+                    val grouped = sets
+                        .sortedByDescending { it.releaseDate }
                         .groupBy { it.series }
-                        .entries
-                        .sortedByDescending { (_, seriesSets) ->
-                            seriesSets.maxOf { it.releaseDate }
-                        }
-                        .map { (series, seriesSets) ->
-                            series to seriesSets.sortedByDescending { it.releaseDate }
-                        }
+                        .toSortedMap(compareByDescending { seriesName ->
+                            sets.filter { it.series == seriesName }
+                                .maxOfOrNull { it.releaseDate } ?: ""
+                        })
+                    val groups = grouped.entries.map { (series, seriesSets) -> series to seriesSets }
                     UiState.Success(groups)
                 },
                 onFailure = { UiState.Error(it.localizedMessage ?: "Ошибка загрузки") }
