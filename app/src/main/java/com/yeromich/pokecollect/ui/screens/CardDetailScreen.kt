@@ -106,12 +106,18 @@ private fun CardDetailContent(
             contentScale = ContentScale.Fit
         )
 
-        Text(text = card.name, style = MaterialTheme.typography.headlineSmall)
-
-        Text(
-            text = "${card.number} • $setName",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Button(
+            onClick = onAddOrIncrement,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = if (isInCollection) {
+                    stringResource(R.string.detail_in_collection, quantity)
+                } else {
+                    stringResource(R.string.detail_add_to_collection)
+                }
+            )
+        }
 
         if (rarity != null) {
             AssistChip(
@@ -180,18 +186,6 @@ private fun CardDetailContent(
             }
         }
 
-        Button(
-            onClick = onAddOrIncrement,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = if (isInCollection) {
-                    stringResource(R.string.detail_in_collection, quantity)
-                } else {
-                    stringResource(R.string.detail_add_to_collection)
-                }
-            )
-        }
     }
 }
 
