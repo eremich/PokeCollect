@@ -50,7 +50,10 @@ class CardDetailViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             runCatching { tcgdexApi.getCard(card.id) }
-                .onSuccess { _cardDetails.value = it }
+                .onSuccess {
+                    android.util.Log.d("CardDetail", "pricing=${it.pricing}")
+                    _cardDetails.value = it
+                }
         }
     }
 
