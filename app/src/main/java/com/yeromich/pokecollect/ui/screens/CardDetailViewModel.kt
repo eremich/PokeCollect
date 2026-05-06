@@ -49,10 +49,14 @@ class CardDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            android.util.Log.d("CardDetail", "Loading card: ${card.id}")
             runCatching { tcgdexApi.getCard(card.id) }
                 .onSuccess {
-                    android.util.Log.d("CardDetail", "pricing=${it.pricing}")
+                    android.util.Log.d("CardDetail", "Success: pricing=${it.pricing}")
                     _cardDetails.value = it
+                }
+                .onFailure {
+                    android.util.Log.e("CardDetail", "Error: ${it.message}", it)
                 }
         }
     }

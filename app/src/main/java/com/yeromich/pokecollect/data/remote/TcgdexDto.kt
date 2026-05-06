@@ -78,8 +78,9 @@ data class TcgdexCardCountDto(
 @Serializable
 data class TcgdexAttackDto(
     val name: String,
-    val damage: String? = null,
-    val effect: String? = null
+    val damage: JsonElement? = null,
+    val effect: String? = null,
+    val cost: List<String>? = null
 )
 
 @Serializable
