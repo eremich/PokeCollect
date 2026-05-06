@@ -55,6 +55,17 @@ data class TcgdexAttackDto(
 )
 
 @Serializable
+data class TcgdexSetDetailDto(
+    val id: String,
+    val name: String,
+    val cards: List<TcgdexCardBriefDto> = emptyList(),
+    val logo: String? = null,
+    val symbol: String? = null,
+    val releaseDate: String? = null,
+    val serie: TcgdexSerieDto? = null
+)
+
+@Serializable
 data class TcgdexSetDto(
     val id: String,
     val name: String,

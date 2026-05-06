@@ -14,7 +14,7 @@ class TcgdexCardPagingSource(
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Card> {
         return try {
             val cards: List<TcgdexCardBriefDto> = when {
-                setId != null -> api.getSetCards(setId)
+                setId != null -> api.getSet(setId).cards
                 query != null && query.isNotBlank() -> api.searchCards(name = query)
                 else -> emptyList()
             }

@@ -19,6 +19,6 @@ interface TcgdexApi {
     @GET("sets")
     suspend fun getSets(): List<TcgdexSetDto>
 
-    @GET("sets/{setId}/cards")
-    suspend fun getSetCards(@Path("setId") setId: String): List<TcgdexCardBriefDto>
+    @GET("sets/{setId}")
+    suspend fun getSet(@Path("setId") setId: String): TcgdexSetDetailDto
 }
