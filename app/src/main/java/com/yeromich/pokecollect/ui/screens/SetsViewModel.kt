@@ -27,14 +27,20 @@ class SetsViewModel @Inject constructor(
             result.fold(
                 onSuccess = { sets ->
                     val groups = sets
-                        .sortedByDescending { it.releaseDate }
+                        .sortedWith(compareByDescending<CardSet> {
+                            it.releaseDate.ifBlank { "0000-00-00" }
+                        })
                         .groupBy { it.series }
                         .entries
                         .sortedByDescending { (_, seriesSets) ->
-                            seriesSets.maxOfOrNull { it.releaseDate } ?: ""
+                            seriesSets.maxOfOrNull {
+                                it.releaseDate.ifBlank { "0000-00-00" }
+                            } ?: "0000-00-00"
                         }
                         .map { (series, seriesSets) ->
-                            series to seriesSets.sortedByDescending { it.releaseDate }
+                            series to seriesSets.sortedByDescending {
+                                it.releaseDate.ifBlank { "0000-00-00" }
+                            }
                         }
                     android.util.Log.d("SetsSort", "First series: ${groups.firstOrNull()?.first}, first set: ${groups.firstOrNull()?.second?.firstOrNull()?.name} date=${groups.firstOrNull()?.second?.firstOrNull()?.releaseDate}")
                     UiState.Success(groups)
