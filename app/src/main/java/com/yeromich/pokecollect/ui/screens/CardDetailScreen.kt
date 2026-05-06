@@ -2,14 +2,19 @@ package com.yeromich.pokecollect.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.yeromich.pokecollect.R
+import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.domain.model.Card
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,6 +44,7 @@ fun CardDetailScreen(
 ) {
     val isInCollection by viewModel.isInCollection.collectAsStateWithLifecycle()
     val quantity by viewModel.quantity.collectAsStateWithLifecycle()
+    val cardDetails by viewModel.cardDetails.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -53,6 +60,7 @@ fun CardDetailScreen(
     ) { innerPadding ->
         CardDetailContent(
             card = viewModel.card,
+            cardDetails = cardDetails,
             isInCollection = isInCollection,
             quantity = quantity,
             onAddOrIncrement = viewModel::addOrIncrement,
@@ -64,11 +72,16 @@ fun CardDetailScreen(
 @Composable
 private fun CardDetailContent(
     card: Card,
+    cardDetails: TcgdexCardDto?,
     isInCollection: Boolean,
     quantity: Int,
     onAddOrIncrement: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val rarity = cardDetails?.rarity ?: card.rarity
+    val seriesName = cardDetails?.set?.serie?.name
+    val setName = cardDetails?.set?.name ?: card.setName
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -84,14 +97,37 @@ private fun CardDetailContent(
                 .aspectRatio(0.72f),
             contentScale = ContentScale.Fit
         )
+
         Text(text = card.name, style = MaterialTheme.typography.headlineSmall)
+
         Text(
-            text = "${card.number} \u2022 ${card.setName}",
+            text = "${card.number} • $setName",
             style = MaterialTheme.typography.bodyMedium
         )
-        if (card.rarity != null) {
-            Text(text = card.rarity, style = MaterialTheme.typography.bodySmall)
+
+        if (rarity != null) {
+            AssistChip(
+                onClick = {},
+                label = { Text(rarity) },
+                leadingIcon = {
+                    Icon(Icons.Filled.Star, contentDescription = null)
+                }
+            )
         }
+
+        if (seriesName != null) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Серия: $seriesName",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Набор: $setName",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
         Button(
             onClick = onAddOrIncrement,
             modifier = Modifier.fillMaxWidth()
