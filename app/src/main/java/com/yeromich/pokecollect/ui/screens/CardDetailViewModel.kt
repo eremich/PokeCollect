@@ -49,21 +49,28 @@ class CardDetailViewModel @Inject constructor(
 
     val availableVariants: StateFlow<List<String>> = _cardDetails
         .map { details ->
-            if (details == null) return@map listOf("Normal")
-            val detailed = details.variants_detailed
-            if (!detailed.isNullOrEmpty()) {
-                detailed.map { variantDisplayNames[it.type] ?: it.type }.distinct()
+            if (details == null) {
+                listOf("Normal")
             } else {
-                val v = details.variants
-                if (v != null) {
-                    buildList {
-                        if (v.normal == true) add("Normal")
-                        if (v.holo == true) add("Holo")
-                        if (v.reverse == true) add("Reverse Holo")
-                        if (v.firstEdition == true) add("1. Auflage")
-                    }.takeIf { it.isNotEmpty() } ?: listOf("Normal")
-                } else {
-                    listOf("Normal")
+                val fromDetailed = details.variants_detailed
+                    ?.map { v ->
+                        when (v.type.lowercase()) {
+                            "reverse" -> "Reverse Holo"
+                            "holo" -> "Holo"
+                            "normal" -> "Normal"
+                            else -> v.type
+                        }
+                    }
+                    ?.distinct()
+                    ?.ifEmpty { null }
+
+                fromDetailed ?: buildList {
+                    val v = details.variants
+                    if (v?.normal == true) add("Normal")
+                    if (v?.holo == true) add("Holo")
+                    if (v?.reverse == true) add("Reverse Holo")
+                    if (v?.firstEdition == true) add("1. Auflage")
+                    if (isEmpty()) add("Normal")
                 }
             }
         }
@@ -76,7 +83,9 @@ class CardDetailViewModel @Inject constructor(
             android.util.Log.d("CardDetail", "Loading card: ${card.id}")
             runCatching { tcgdexApi.getCard(card.id) }
                 .onSuccess {
-                    android.util.Log.d("CardDetail", "Success: pricing=${it.pricing}")
+                    android.util.Log.d("CardDetail", "pricing=${it.pricing}")
+                    android.util.Log.d("CardDetail", "variants=${it.variants}")
+                    android.util.Log.d("CardDetail", "variants_detailed=${it.variants_detailed}")
                     _cardDetails.value = it
                 }
                 .onFailure {

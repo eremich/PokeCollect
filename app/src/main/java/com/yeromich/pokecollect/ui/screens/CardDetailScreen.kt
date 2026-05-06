@@ -82,13 +82,7 @@ fun CardDetailScreen(
             pricing = pricing,
             isInCollection = isInCollection,
             quantity = quantity,
-            onAddToCollection = {
-                if (availableVariants.size <= 1) {
-                    viewModel.addOrIncrement()
-                } else {
-                    showSheet = true
-                }
-            },
+            onAddToCollection = { showSheet = true },
             modifier = Modifier.padding(innerPadding)
         )
     }
