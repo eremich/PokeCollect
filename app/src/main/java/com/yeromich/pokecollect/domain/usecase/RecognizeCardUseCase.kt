@@ -44,16 +44,16 @@ class RecognizeCardUseCase @Inject constructor(
             }
 
             var extractedName: String? = null
-            var maxWidth = 0f
+            var maxHeight = 0f
             for (block in visionText.textBlocks) {
                 val blockTop = block.boundingBox?.top ?: continue
-                if (blockTop < imageHeight * 0.25f) {
-                    val blockWidth = block.boundingBox?.width() ?: 0
+                if (blockTop < imageHeight * 0.45f) {
+                    val blockHeight = block.boundingBox?.height() ?: 0
                     val cleaned = block.text
-                        .replace(Regex("(?i)(PHASE|BASIC|STAGE|KP|HP|\\d+)"), "")
+                        .replace(Regex("(?i)(PHASE\\s*\\d?|BASIC|STAGE\\s*\\d?|KP|HP|\\d+|[^\\p{L}\\s])"), "")
                         .trim()
-                    if (cleaned.length > 2 && blockWidth > maxWidth) {
-                        maxWidth = blockWidth.toFloat()
+                    if (cleaned.length > 2 && blockHeight > maxHeight) {
+                        maxHeight = blockHeight.toFloat()
                         extractedName = cleaned
                     }
                 }
