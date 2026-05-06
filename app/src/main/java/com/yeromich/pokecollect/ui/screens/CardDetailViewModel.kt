@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeromich.pokecollect.data.remote.TcgdexApi
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
+import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.data.repository.CollectionRepository
 import com.yeromich.pokecollect.domain.model.Card
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -40,6 +42,10 @@ class CardDetailViewModel @Inject constructor(
 
     private val _cardDetails = MutableStateFlow<TcgdexCardDto?>(null)
     val cardDetails: StateFlow<TcgdexCardDto?> = _cardDetails.asStateFlow()
+
+    val pricing: StateFlow<TcgdexCardmarketDto?> = _cardDetails
+        .map { it?.pricing?.cardmarket }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
         viewModelScope.launch {

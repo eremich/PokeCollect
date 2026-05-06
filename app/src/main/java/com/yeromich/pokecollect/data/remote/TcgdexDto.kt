@@ -1,5 +1,6 @@
 package com.yeromich.pokecollect.data.remote
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -21,7 +22,27 @@ data class TcgdexCardDto(
     val illustrator: String? = null,
     val rarity: String? = null,
     val set: TcgdexSetBriefDto? = null,
-    val attacks: List<TcgdexAttackDto>? = null
+    val attacks: List<TcgdexAttackDto>? = null,
+    val pricing: TcgdexPricingDto? = null
+)
+
+@Serializable
+data class TcgdexPricingDto(
+    val cardmarket: TcgdexCardmarketDto? = null
+)
+
+@Serializable
+data class TcgdexCardmarketDto(
+    val updated: String? = null,
+    val unit: String? = null,
+    val avg: Double? = null,
+    val low: Double? = null,
+    val trend: Double? = null,
+    val avg7: Double? = null,
+    val avg30: Double? = null,
+    @SerialName("avg-holo") val avgHolo: Double? = null,
+    @SerialName("low-holo") val lowHolo: Double? = null,
+    @SerialName("trend-holo") val trendHolo: Double? = null
 )
 
 @Serializable

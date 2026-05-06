@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,15 +27,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
+import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.domain.model.Card
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +50,7 @@ fun CardDetailScreen(
     val isInCollection by viewModel.isInCollection.collectAsStateWithLifecycle()
     val quantity by viewModel.quantity.collectAsStateWithLifecycle()
     val cardDetails by viewModel.cardDetails.collectAsStateWithLifecycle()
+    val pricing by viewModel.pricing.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -61,6 +67,7 @@ fun CardDetailScreen(
         CardDetailContent(
             card = viewModel.card,
             cardDetails = cardDetails,
+            pricing = pricing,
             isInCollection = isInCollection,
             quantity = quantity,
             onAddOrIncrement = viewModel::addOrIncrement,
@@ -73,6 +80,7 @@ fun CardDetailScreen(
 private fun CardDetailContent(
     card: Card,
     cardDetails: TcgdexCardDto?,
+    pricing: TcgdexCardmarketDto?,
     isInCollection: Boolean,
     quantity: Int,
     onAddOrIncrement: () -> Unit,
@@ -109,22 +117,66 @@ private fun CardDetailContent(
             AssistChip(
                 onClick = {},
                 label = { Text(rarity) },
-                leadingIcon = {
-                    Icon(Icons.Filled.Star, contentDescription = null)
-                }
+                leadingIcon = { Icon(Icons.Filled.Star, contentDescription = null) }
             )
         }
 
         if (seriesName != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Серия: $seriesName",
-                    style = MaterialTheme.typography.bodyMedium
+                Text(text = "Серия: $seriesName", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Набор: $setName", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+
+        pricing?.let { cm ->
+            Spacer(Modifier.height(4.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                Text(
-                    text = "Набор: $setName",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Cardmarket (EUR)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        cm.trend?.let { PriceColumn("Trend", it) }
+                        cm.avg30?.let { PriceColumn("Ø 30d", it) }
+                        cm.low?.let { PriceColumn("Low", it) }
+                    }
+                    if (cm.trendHolo != null || cm.avgHolo != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Holo",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            cm.trendHolo?.let { PriceColumn("Trend", it) }
+                            cm.avgHolo?.let { PriceColumn("Ø 30d", it) }
+                            cm.lowHolo?.let { PriceColumn("Low", it) }
+                        }
+                    }
+                    cm.updated?.let { updated ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Aktualisiert: ${updated.take(10)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
             }
         }
 
@@ -140,5 +192,21 @@ private fun CardDetailContent(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun PriceColumn(label: String, price: Double) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "€%.2f".format(price),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
