@@ -15,6 +15,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,17 +27,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -46,6 +50,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -89,6 +95,7 @@ import kotlin.coroutines.resume
 fun ScannerScreen(
     onClose: () -> Unit,
     onCardSelected: (Card) -> Unit,
+    onSearchManual: (String) -> Unit,
     viewModel: ScannerViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -359,7 +366,8 @@ fun ScannerScreen(
                     file = s.file,
                     result = s.result,
                     onRetake = { viewModel.onRetake() },
-                    onCardSelected = onCardSelected
+                    onCardSelected = onCardSelected,
+                    onSearchManual = onSearchManual
                 )
             }
 
@@ -386,7 +394,8 @@ private fun RecognizedContent(
     file: File,
     result: RecognitionResult,
     onRetake: () -> Unit,
-    onCardSelected: (Card) -> Unit
+    onCardSelected: (Card) -> Unit,
+    onSearchManual: (String) -> Unit
 ) {
     val bitmap = remember(file) {
         val raw = BitmapFactory.decodeFile(file.absolutePath) ?: return@remember null
@@ -449,6 +458,7 @@ private fun RecognizedContent(
             }
 
             is RecognitionResult.NotFound -> {
+                var searchText by remember { mutableStateOf(result.extractedName ?: "") }
                 Column(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -460,10 +470,35 @@ private fun RecognizedContent(
                         color = Color.White,
                         style = MaterialTheme.typography.titleMedium
                     )
-                    result.extractedName?.let { Text("Имя: $it", color = Color.White.copy(alpha = 0.7f)) }
-                    result.extractedNumber?.let { Text("Номер: $it", color = Color.White.copy(alpha = 0.7f)) }
-                    Spacer(Modifier.height(24.dp))
-                    Button(onClick = onRetake) { Text(stringResource(R.string.scanner_retake)) }
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        label = { Text("Название карты") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f)
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Row {
+                        OutlinedButton(
+                            onClick = onRetake,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                            border = BorderStroke(1.dp, Color.White)
+                        ) { Text(stringResource(R.string.scanner_retake)) }
+                        Spacer(Modifier.width(12.dp))
+                        Button(
+                            onClick = { onSearchManual(searchText) },
+                            enabled = searchText.isNotBlank()
+                        ) { Text("Найти") }
+                    }
                 }
             }
 

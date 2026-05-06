@@ -72,10 +72,53 @@ class RecognizeCardUseCase @Inject constructor(
                 }
             }
 
-            android.util.Log.d("Recognition", "name=$extractedName number=$extractedNumber")
+            var extractedHp: Int? = null
+            val hpRegex = Regex("""(?:KP|HP)\s*(\d{2,3})""")
+            for (block in visionText.textBlocks) {
+                val blockTop = block.boundingBox?.top ?: continue
+                if (blockTop < imageHeight * 0.45f) {
+                    val match = hpRegex.find(block.text)
+                    if (match != null) {
+                        extractedHp = match.groupValues[1].toIntOrNull()
+                        break
+                    }
+                }
+            }
+            if (extractedHp == null) {
+                val bigNumberRegex = Regex("""\b([2-9]\d{2})\b""")
+                for (block in visionText.textBlocks) {
+                    val blockTop = block.boundingBox?.top ?: continue
+                    if (blockTop < imageHeight * 0.45f) {
+                        val match = bigNumberRegex.find(block.text)
+                        if (match != null) {
+                            val num = match.groupValues[1].toInt()
+                            if (num in 180..400) { extractedHp = num; break }
+                        }
+                    }
+                }
+            }
 
-            if (extractedName != null) {
-                val result = cardRepository.searchCards(extractedName, 20)
+            android.util.Log.d("Recognition", "name=$extractedName number=$extractedNumber hp=$extractedHp")
+
+            val cleanedName = extractedName
+                ?.replace(Regex("(?i)\\s*(ex|EX|GX|V|VMAX|VSTAR|X)$"), "")
+                ?.replace(Regex("[^\\p{L}\\s]"), "")
+                ?.trim()
+
+            val cardSuffix = when {
+                extractedHp != null && extractedHp >= 250 -> "ex"
+                extractedHp != null && extractedHp >= 180 -> "V"
+                else -> null
+            }
+
+            if (cleanedName != null) {
+                val searchName = if (cardSuffix != null) "$cleanedName $cardSuffix" else cleanedName
+                var result = cardRepository.searchCards(searchName, 20)
+
+                if (result.isSuccess && result.getOrNull().isNullOrEmpty() && cardSuffix != null) {
+                    result = cardRepository.searchCards(cleanedName, 20)
+                }
+
                 result.fold(
                     onSuccess = { cards ->
                         android.util.Log.d("Recognition", "found=${cards.size}")
@@ -86,7 +129,7 @@ class RecognizeCardUseCase @Inject constructor(
                             }
                         else cards
                         val final = if (filtered.isEmpty()) cards else filtered
-                        if (final.isEmpty()) emit(RecognitionResult.NotFound(extractedName, extractedNumber))
+                        if (final.isEmpty()) emit(RecognitionResult.NotFound(cleanedName, extractedNumber))
                         else emit(RecognitionResult.Success(final))
                     },
                     onFailure = { emit(RecognitionResult.Error(it.message ?: "Ошибка")) }

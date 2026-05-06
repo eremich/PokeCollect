@@ -30,7 +30,10 @@ class CatalogViewModel @Inject constructor(
     val setName: String? = savedStateHandle.get<String>("setName")
         ?.let { URLDecoder.decode(it, "UTF-8") }
 
-    private val _query = MutableStateFlow("")
+    private val initialQuery = savedStateHandle.get<String>("query")
+        ?.let { URLDecoder.decode(it, "UTF-8") } ?: ""
+
+    private val _query = MutableStateFlow(initialQuery)
     val query: StateFlow<String> = _query.asStateFlow()
 
     val cards: Flow<PagingData<Card>> = _query

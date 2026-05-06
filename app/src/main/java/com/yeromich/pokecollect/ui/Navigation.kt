@@ -90,7 +90,10 @@ fun PokeCollectApp() {
             composable(Screen.Scanner.route) {
                 ScannerScreen(
                     onClose = { navController.popBackStack() },
-                    onCardSelected = { card -> navController.navigate("card/${card.toEncodedJson()}") }
+                    onCardSelected = { card -> navController.navigate("card/${card.toEncodedJson()}") },
+                    onSearchManual = { query ->
+                        navController.navigate("catalog?setId=&setName=&query=${URLEncoder.encode(query, "UTF-8")}")
+                    }
                 )
             }
             composable(Screen.Sets.route) {
@@ -103,10 +106,11 @@ fun PokeCollectApp() {
                 )
             }
             composable(
-                route = "catalog?setId={setId}&setName={setName}",
+                route = "catalog?setId={setId}&setName={setName}&query={query}",
                 arguments = listOf(
                     navArgument("setId") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    navArgument("setName") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    navArgument("setName") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("query") { type = NavType.StringType; nullable = true; defaultValue = null }
                 )
             ) {
                 CatalogScreen(
