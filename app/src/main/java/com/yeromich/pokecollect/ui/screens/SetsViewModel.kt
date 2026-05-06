@@ -22,27 +22,48 @@ class SetsViewModel @Inject constructor(
         data class Error(val message: String) : UiState()
     }
 
+    private val epochOrder = mapOf(
+        "me" to 0, "sv" to 1, "swsh" to 2, "sm" to 3,
+        "xy" to 4, "bw" to 5, "hgss" to 6, "col" to 7,
+        "pl" to 8, "dp" to 9, "ex" to 10, "neo" to 11,
+        "ecard" to 12, "base" to 13
+    )
+
+    private fun CardSet.epochIndex(): Int {
+        epochOrder.forEach { (prefix, index) ->
+            if (id.startsWith(prefix)) return index
+        }
+        return 99
+    }
+
+    private fun CardSet.numberInEpoch(): Double {
+        return id.filter { it.isDigit() || it == '.' }
+            .toDoubleOrNull() ?: 0.0
+    }
+
     val uiState: StateFlow<UiState> = setsRepository.getAllSets()
         .map { result ->
             result.fold(
                 onSuccess = { sets ->
-                    val groups = sets
-                        .sortedWith(compareByDescending<CardSet> {
-                            it.releaseDate.ifBlank { "0000-00-00" }
-                        })
+                    val sortedSets = sets.sortedWith(
+                        compareBy<CardSet> { it.epochIndex() }
+                            .thenByDescending { it.numberInEpoch() }
+                    )
+
+                    val groups = sortedSets
                         .groupBy { it.series }
                         .entries
-                        .sortedByDescending { (_, seriesSets) ->
-                            seriesSets.maxOfOrNull {
-                                it.releaseDate.ifBlank { "0000-00-00" }
-                            } ?: "0000-00-00"
+                        .sortedBy { (_, seriesSets) ->
+                            seriesSets.minOfOrNull { it.epochIndex() } ?: 99
                         }
                         .map { (series, seriesSets) ->
-                            series to seriesSets.sortedByDescending {
-                                it.releaseDate.ifBlank { "0000-00-00" }
-                            }
+                            series to seriesSets.sortedWith(
+                                compareBy<CardSet> { it.epochIndex() }
+                                    .thenByDescending { it.numberInEpoch() }
+                            )
                         }
-                    android.util.Log.d("SetsSort", "First series: ${groups.firstOrNull()?.first}, first set: ${groups.firstOrNull()?.second?.firstOrNull()?.name} date=${groups.firstOrNull()?.second?.firstOrNull()?.releaseDate}")
+
+                    android.util.Log.d("SetsSort", "First: ${groups.firstOrNull()?.second?.firstOrNull()?.let { "${it.name} id=${it.id}" }}")
                     UiState.Success(groups)
                 },
                 onFailure = { UiState.Error(it.localizedMessage ?: "Ошибка загрузки") }
