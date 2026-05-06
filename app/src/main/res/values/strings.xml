@@ -14,6 +14,7 @@
     <string name="nav_sets">Сеты</string>
     <string name="catalog_search_hint">Поиск карт…</string>
     <string name="catalog_empty">Ничего не найдено</string>
+    <string name="catalog_search_prompt">Введите название покемона для поиска</string>
     <string name="catalog_error_generic">Ошибка загрузки</string>
     <string name="catalog_error_retry">Повторить</string>
     <string name="collection_count_title">Моя коллекция (%d)</string>

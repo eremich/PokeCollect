@@ -1,6 +1,5 @@
 package com.yeromich.pokecollect.di
 
-import com.yeromich.pokecollect.data.remote.PokemonTcgApi
 import com.yeromich.pokecollect.data.remote.TcgdexApi
 import dagger.Module
 import dagger.Provides
@@ -35,25 +34,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
-        .baseUrl("https://api.pokemontcg.io/v2/")
-        .client(okHttpClient)
-        .addConverterFactory(json.asConverterFactory("application/json; charset=UTF8".toMediaType()))
-        .build()
-
-    @Provides
-    @Singleton
     @Named("tcgdex")
     fun provideTcgdexRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
         .baseUrl("https://api.tcgdex.net/v2/de/")
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json; charset=UTF8".toMediaType()))
         .build()
-
-    @Provides
-    @Singleton
-    fun providePokemonTcgApi(retrofit: Retrofit): PokemonTcgApi =
-        retrofit.create(PokemonTcgApi::class.java)
 
     @Provides
     @Singleton

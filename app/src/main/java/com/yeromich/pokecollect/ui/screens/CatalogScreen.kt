@@ -104,8 +104,12 @@ fun CatalogScreen(
                     }
 
                     cards.itemCount == 0 && cards.loadState.refresh is LoadState.NotLoading -> {
+                        val promptText = if (query.isBlank() && viewModel.setId == null)
+                            stringResource(R.string.catalog_search_prompt)
+                        else
+                            stringResource(R.string.catalog_empty)
                         Text(
-                            text = stringResource(R.string.catalog_empty),
+                            text = promptText,
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }

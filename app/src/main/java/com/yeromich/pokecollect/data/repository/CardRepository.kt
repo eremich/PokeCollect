@@ -5,6 +5,6 @@ import com.yeromich.pokecollect.domain.model.Card
 import kotlinx.coroutines.flow.Flow
 
 interface CardRepository {
-    fun getCardsPaged(query: String?): Flow<PagingData<Card>>
+    fun getCardsPaged(query: String? = null, setId: String? = null): Flow<PagingData<Card>>
     suspend fun searchCards(query: String, pageSize: Int): Result<List<Card>>
 }

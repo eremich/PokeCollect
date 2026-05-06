@@ -38,14 +38,13 @@ class CatalogViewModel @Inject constructor(
 
     val cards: Flow<PagingData<Card>> = _query
         .debounce(400L)
-        .flatMapLatest { q -> repository.getCardsPaged(buildApiQuery(q)) }
+        .flatMapLatest { q ->
+            repository.getCardsPaged(
+                query = q.ifBlank { null },
+                setId = setId
+            )
+        }
         .cachedIn(viewModelScope)
-
-    private fun buildApiQuery(searchText: String): String? {
-        val setPart = setId?.let { "set.id:$it" }
-        val namePart = searchText.takeIf { it.isNotBlank() }?.let { "name:\"*$it*\"" }
-        return listOfNotNull(setPart, namePart).joinToString(" ").takeIf { it.isNotBlank() }
-    }
 
     fun onQueryChange(q: String) {
         _query.value = q
