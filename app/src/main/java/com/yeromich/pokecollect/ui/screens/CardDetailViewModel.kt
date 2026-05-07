@@ -76,6 +76,10 @@ class CardDetailViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), listOf("Normal"))
 
+    val collectionCounts: StateFlow<Map<String, Int>> = collectionRepository
+        .getVariantCounts(card.id)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     val selectedVariant = MutableStateFlow("Normal")
 
     init {
@@ -101,6 +105,12 @@ class CardDetailViewModel @Inject constructor(
     fun addOrIncrement() {
         viewModelScope.launch {
             collectionRepository.addOrIncrementVariant(card, selectedVariant.value)
+        }
+    }
+
+    fun removeOne() {
+        viewModelScope.launch {
+            collectionRepository.removeOne(card.id, selectedVariant.value)
         }
     }
 

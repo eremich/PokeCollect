@@ -35,5 +35,24 @@ class CollectionRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun removeOne(cardId: String, variant: String) {
+        val existing = dao.getByIdAndVariant(cardId, variant).first()
+        if (existing != null) {
+            if (existing.quantity > 1) {
+                dao.decrementByVariant(cardId, variant)
+            } else {
+                dao.deleteByIdAndVariant(cardId, variant)
+            }
+        }
+    }
+
+    override fun getVariantCounts(cardId: String): Flow<Map<String, Int>> =
+        dao.getAll().map { entities ->
+            entities
+                .filter { it.id == cardId }
+                .groupBy { it.variant }
+                .mapValues { (_, list) -> list.sumOf { it.quantity } }
+        }
+
     override suspend fun remove(id: String) = dao.deleteById(id)
 }

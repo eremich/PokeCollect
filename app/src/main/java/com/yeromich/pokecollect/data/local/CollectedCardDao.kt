@@ -27,8 +27,14 @@ interface CollectedCardDao {
     @Query("UPDATE collected_cards SET quantity = quantity + 1 WHERE id = :cardId AND variant = :variant")
     suspend fun incrementByVariant(cardId: String, variant: String)
 
+    @Query("UPDATE collected_cards SET quantity = quantity - 1 WHERE id = :cardId AND variant = :variant AND quantity > 1")
+    suspend fun decrementByVariant(cardId: String, variant: String)
+
     @Query("DELETE FROM collected_cards WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM collected_cards WHERE id = :cardId AND variant = :variant")
+    suspend fun deleteByIdAndVariant(cardId: String, variant: String)
 
     @Query("SELECT COUNT(*) FROM collected_cards")
     fun getCount(): Flow<Int>

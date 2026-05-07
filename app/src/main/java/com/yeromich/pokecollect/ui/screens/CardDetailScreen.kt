@@ -1,5 +1,6 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +26,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -32,13 +35,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.domain.model.Card
@@ -49,12 +50,11 @@ fun CardDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: CardDetailViewModel = hiltViewModel()
 ) {
-    val isInCollection by viewModel.isInCollection.collectAsStateWithLifecycle()
-    val quantity by viewModel.quantity.collectAsStateWithLifecycle()
     val cardDetails by viewModel.cardDetails.collectAsStateWithLifecycle()
     val pricing by viewModel.pricing.collectAsStateWithLifecycle()
     val availableVariants by viewModel.availableVariants.collectAsStateWithLifecycle()
     val selectedVariant by viewModel.selectedVariant.collectAsStateWithLifecycle()
+    val collectionCounts by viewModel.collectionCounts.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -72,12 +72,12 @@ fun CardDetailScreen(
             card = viewModel.card,
             cardDetails = cardDetails,
             pricing = pricing,
-            isInCollection = isInCollection,
-            quantity = quantity,
             availableVariants = availableVariants,
             selectedVariant = selectedVariant,
+            collectionCounts = collectionCounts,
             onVariantSelected = viewModel::selectVariant,
             onAddOrIncrement = viewModel::addOrIncrement,
+            onRemoveOne = viewModel::removeOne,
             modifier = Modifier.padding(innerPadding)
         )
     }
@@ -88,17 +88,18 @@ private fun CardDetailContent(
     card: Card,
     cardDetails: TcgdexCardDto?,
     pricing: TcgdexCardmarketDto?,
-    isInCollection: Boolean,
-    quantity: Int,
     availableVariants: List<String>,
     selectedVariant: String,
+    collectionCounts: Map<String, Int>,
     onVariantSelected: (String) -> Unit,
     onAddOrIncrement: () -> Unit,
+    onRemoveOne: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val rarity = cardDetails?.rarity ?: card.rarity
     val seriesName = cardDetails?.set?.serie?.name
     val setName = cardDetails?.set?.name ?: card.setName
+    val selectedCount = collectionCounts[selectedVariant] ?: 0
 
     Column(
         modifier = modifier
@@ -117,32 +118,44 @@ private fun CardDetailContent(
         )
 
         if (availableVariants.size > 1) {
-            Spacer(Modifier.height(4.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
                 availableVariants.forEach { variant ->
+                    val count = collectionCounts[variant] ?: 0
                     FilterChip(
                         selected = variant == selectedVariant,
                         onClick = { onVariantSelected(variant) },
-                        label = { Text(variant) }
+                        label = { Text(if (count > 0) "$variant ×$count" else variant) }
                     )
                 }
             }
         }
 
-        Button(
-            onClick = onAddOrIncrement,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = if (isInCollection) {
-                    stringResource(R.string.detail_in_collection, quantity)
-                } else {
-                    stringResource(R.string.detail_add_to_collection)
-                }
-            )
+        if (selectedCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onRemoveOne,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) { Text("Убрать") }
+                Button(
+                    onClick = onAddOrIncrement,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Добавить ещё") }
+            }
+        } else {
+            Button(
+                onClick = onAddOrIncrement,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Добавить в коллекцию") }
         }
 
         if (rarity != null) {

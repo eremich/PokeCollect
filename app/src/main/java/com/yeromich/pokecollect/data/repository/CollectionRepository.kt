@@ -10,5 +10,7 @@ interface CollectionRepository {
     fun getCount(): Flow<Int>
     suspend fun addOrIncrement(card: Card)
     suspend fun addOrIncrementVariant(card: Card, variant: String)
+    suspend fun removeOne(cardId: String, variant: String)
+    fun getVariantCounts(cardId: String): Flow<Map<String, Int>>
     suspend fun remove(id: String)
 }
