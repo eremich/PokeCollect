@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PokeCollect</string>
+    <string name="nav_collection">Sammlung</string>
+    <string name="nav_scanner">Scanner</string>
+    <string name="nav_catalog">Katalog</string>
+    <string name="nav_sets">Suche</string>
+    <string name="screen_collection_title">Meine Sammlung</string>
+    <string name="screen_collection_empty">Sammlung ist leer</string>
+    <string name="screen_scanner_title">Scanner</string>
+    <string name="screen_scanner_soon">Scanner (demnächst)</string>
+    <string name="screen_catalog_title">Katalog</string>
+    <string name="screen_catalog_soon">Katalog (demnächst)</string>
+    <string name="screen_sets_title">Sets</string>
+    <string name="catalog_search_hint">Karten suchen…</string>
+    <string name="catalog_search_prompt">Pokémon-Namen eingeben</string>
+    <string name="catalog_empty">Nichts gefunden</string>
+    <string name="catalog_error_generic">Ladefehler</string>
+    <string name="catalog_error_retry">Wiederholen</string>
+    <string name="collection_count_title">Meine Sammlung (%d)</string>
+    <string name="collection_empty_hint">Sammlung ist leer. Finde eine Karte und füge sie hinzu.</string>
+    <string name="detail_add_to_collection">Zur Sammlung hinzufügen</string>
+    <string name="detail_in_collection">In der Sammlung (×%d)</string>
+    <string name="detail_add_more">Noch hinzufügen</string>
+    <string name="detail_remove_one">Entfernen</string>
+    <string name="detail_series">Serie: %s</string>
+    <string name="detail_set">Set: %s</string>
+    <string name="detail_updated">Aktualisiert: %s</string>
+    <string name="sets_card_count">%d Karten</string>
+    <string name="sets_search_all">Alle Karten suchen</string>
+    <string name="scanner_permission_title">Kamerazugriff wird zum Scannen benötigt</string>
+    <string name="scanner_permission_grant">Erlauben</string>
+    <string name="scanner_permission_denied">Bitte Kamerazugriff in den Einstellungen erlauben</string>
+    <string name="scanner_open_settings">Einstellungen öffnen</string>
+    <string name="scanner_hint">Kamera auf die Karte richten</string>
+    <string name="scanner_capture">Foto aufnehmen</string>
+    <string name="scanner_retake">Neu aufnehmen</string>
+    <string name="scanner_use">Verwenden</string>
+    <string name="scanner_error_back">Zurück</string>
+    <string name="scanner_close">Schließen</string>
+    <string name="scanner_recognizing">Wird erkannt...</string>
+    <string name="scanner_not_found">Karte konnte nicht erkannt werden</string>
+    <string name="scanner_found_candidates">%d Ergebnisse gefunden</string>
+    <string name="scanner_card_name_label">Kartenname</string>
+    <string name="scanner_search">Suchen</string>
+</resources>

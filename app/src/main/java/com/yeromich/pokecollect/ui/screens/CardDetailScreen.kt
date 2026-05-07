@@ -35,11 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.domain.model.Card
@@ -145,17 +147,17 @@ private fun CardDetailContent(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                ) { Text("Убрать") }
+                ) { Text(stringResource(R.string.detail_remove_one)) }
                 Button(
                     onClick = onAddOrIncrement,
                     modifier = Modifier.weight(1f)
-                ) { Text("Добавить ещё") }
+                ) { Text(stringResource(R.string.detail_add_more)) }
             }
         } else {
             Button(
                 onClick = onAddOrIncrement,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Добавить в коллекцию") }
+            ) { Text(stringResource(R.string.detail_add_to_collection)) }
         }
 
         if (rarity != null) {
@@ -168,8 +170,8 @@ private fun CardDetailContent(
 
         if (seriesName != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = "Серия: $seriesName", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Набор: $setName", style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.detail_series, seriesName), style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.detail_set, setName), style = MaterialTheme.typography.bodyMedium)
             }
         }
 
@@ -216,7 +218,7 @@ private fun CardDetailContent(
                     cm.updated?.let { updated ->
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Aktualisiert: ${updated.take(10)}",
+                            text = stringResource(R.string.detail_updated, updated.take(10)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )

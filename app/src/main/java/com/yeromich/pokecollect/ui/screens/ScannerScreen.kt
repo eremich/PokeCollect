@@ -432,7 +432,7 @@ private fun RecognizedContent(
                 } else if (showSheet) {
                     ModalBottomSheet(onDismissRequest = { showSheet = false }) {
                         Text(
-                            "Найдено ${result.candidates.size} вариантов",
+                            stringResource(R.string.scanner_found_candidates, result.candidates.size),
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(16.dp)
                         )
@@ -474,7 +474,7 @@ private fun RecognizedContent(
                     OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        label = { Text("Название карты") },
+                        label = { Text(stringResource(R.string.scanner_card_name_label)) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
@@ -497,7 +497,7 @@ private fun RecognizedContent(
                         Button(
                             onClick = { onSearchManual(searchText) },
                             enabled = searchText.isNotBlank()
-                        ) { Text("Найти") }
+                        ) { Text(stringResource(R.string.scanner_search)) }
                     }
                 }
             }
