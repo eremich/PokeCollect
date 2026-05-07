@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.ui.components.CardGridItem
@@ -121,7 +122,10 @@ fun CatalogScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(count = cards.itemCount) { index ->
+                            items(
+                                count = cards.itemCount,
+                                key = cards.itemKey { it.id }
+                            ) { index ->
                                 cards[index]?.let { card ->
                                     CardGridItem(card = card, onClick = { onCardClick(card) })
                                 }

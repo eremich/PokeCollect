@@ -93,7 +93,7 @@ fun SetsScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     state.groups.forEach { (seriesName, setsInSeries) ->
-                        item(span = { GridItemSpan(maxLineSpan) }) {
+                        item(key = "header_$seriesName", span = { GridItemSpan(maxLineSpan) }) {
                             Text(
                                 text = seriesName,
                                 style = MaterialTheme.typography.titleSmall,
@@ -101,7 +101,7 @@ fun SetsScreen(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
-                        items(setsInSeries) { set ->
+                        items(setsInSeries, key = { set -> set.id }) { set ->
                             SetCard(set = set, onClick = { onSetClick(set) })
                         }
                     }
