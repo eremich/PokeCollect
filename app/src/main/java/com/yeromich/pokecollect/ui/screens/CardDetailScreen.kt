@@ -24,16 +24,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -61,9 +56,6 @@ fun CardDetailScreen(
     val availableVariants by viewModel.availableVariants.collectAsStateWithLifecycle()
     val selectedVariant by viewModel.selectedVariant.collectAsStateWithLifecycle()
 
-    var showSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -82,48 +74,12 @@ fun CardDetailScreen(
             pricing = pricing,
             isInCollection = isInCollection,
             quantity = quantity,
-            onAddToCollection = { showSheet = true },
+            availableVariants = availableVariants,
+            selectedVariant = selectedVariant,
+            onVariantSelected = viewModel::selectVariant,
+            onAddOrIncrement = viewModel::addOrIncrement,
             modifier = Modifier.padding(innerPadding)
         )
-    }
-
-    if (showSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showSheet = false },
-            sheetState = sheetState
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 24.dp)
-            ) {
-                Text("Вариант", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.horizontalScroll(rememberScrollState())
-                ) {
-                    availableVariants.forEach { variant ->
-                        FilterChip(
-                            selected = variant == selectedVariant,
-                            onClick = { viewModel.selectVariant(variant) },
-                            label = { Text(variant) }
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        viewModel.addOrIncrement()
-                        showSheet = false
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isInCollection) "Ещё раз добавить" else "Добавить в коллекцию")
-                }
-            }
-        }
     }
 }
 
@@ -134,7 +90,10 @@ private fun CardDetailContent(
     pricing: TcgdexCardmarketDto?,
     isInCollection: Boolean,
     quantity: Int,
-    onAddToCollection: () -> Unit,
+    availableVariants: List<String>,
+    selectedVariant: String,
+    onVariantSelected: (String) -> Unit,
+    onAddOrIncrement: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val rarity = cardDetails?.rarity ?: card.rarity
@@ -157,8 +116,24 @@ private fun CardDetailContent(
             contentScale = ContentScale.Fit
         )
 
+        if (availableVariants.size > 1) {
+            Spacer(Modifier.height(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                availableVariants.forEach { variant ->
+                    FilterChip(
+                        selected = variant == selectedVariant,
+                        onClick = { onVariantSelected(variant) },
+                        label = { Text(variant) }
+                    )
+                }
+            }
+        }
+
         Button(
-            onClick = onAddToCollection,
+            onClick = onAddOrIncrement,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
