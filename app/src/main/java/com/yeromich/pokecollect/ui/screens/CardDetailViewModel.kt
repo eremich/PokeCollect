@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -95,6 +96,12 @@ class CardDetailViewModel @Inject constructor(
                 .onFailure {
                     android.util.Log.e("CardDetail", "Error: ${it.message}", it)
                 }
+        }
+        viewModelScope.launch {
+            collectionRepository.getVariantCounts(card.id)
+                .first { it.isNotEmpty() }
+                .keys.firstOrNull()
+                ?.let { if (selectedVariant.value == "Normal") selectedVariant.value = it }
         }
     }
 

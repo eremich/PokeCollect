@@ -117,7 +117,7 @@ private fun CardDetailContent(
             contentScale = ContentScale.Fit
         )
 
-        if (availableVariants.size > 1) {
+        if (availableVariants.isNotEmpty()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.horizontalScroll(rememberScrollState())
