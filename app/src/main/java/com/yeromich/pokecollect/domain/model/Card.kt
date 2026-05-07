@@ -10,5 +10,6 @@ data class Card(
     val setName: String,
     val rarity: String?,
     val imageSmall: String,
-    val imageLarge: String
+    val imageLarge: String,
+    val variant: String = "Normal"
 )

@@ -9,7 +9,8 @@ fun CollectedCardEntity.toDomain() = Card(
     setName = setName,
     rarity = rarity,
     imageSmall = imageSmall,
-    imageLarge = imageLarge
+    imageLarge = imageLarge,
+    variant = variant
 )
 
 fun Card.toEntity(addedAt: Long = System.currentTimeMillis()) = CollectedCardEntity(

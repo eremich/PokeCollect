@@ -62,7 +62,7 @@ fun CollectionScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(innerPadding)
             ) {
-                items(cards, key = { it.id }) { card ->
+                items(cards, key = { "${it.id}_${it.variant}" }) { card ->
                     CardGridItem(card = card, onClick = { onCardClick(card) })
                 }
             }
