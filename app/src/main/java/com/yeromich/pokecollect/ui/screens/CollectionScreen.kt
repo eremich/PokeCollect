@@ -1,16 +1,10 @@
 package com.yeromich.pokecollect.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -35,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.ui.components.CardGridItem
+import com.yeromich.pokecollect.ui.components.StatusBarScrim
 
 @Composable
 fun CollectionScreen(
@@ -77,13 +72,7 @@ fun CollectionScreen(
                 }
             }
         }
-        // Keeps the status bar legible once cards scroll underneath it.
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars)
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
-        )
+        StatusBarScrim()
     }
 }
 

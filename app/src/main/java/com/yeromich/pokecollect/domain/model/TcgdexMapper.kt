@@ -33,7 +33,7 @@ fun TcgdexCardDto.toDomain(): Card {
 fun TcgdexSetDto.toDomain() = CardSet(
     id = id,
     name = name,
-    series = serie?.name ?: "Другое",
+    series = serie?.name.orEmpty(),
     releaseDate = releaseDate ?: "",
     total = cardCount?.official ?: cardCount?.total ?: 0,
     logoUrl = if (logo != null) "${logo}.webp" else "",

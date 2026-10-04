@@ -55,4 +55,6 @@
     <string name="detail_price_trend">Cardmarket-Trend</string>
     <string name="detail_price_avg30">Ø 30 Tage</string>
     <string name="detail_price_low">Niedrigster</string>
+    <string name="sets_series_other">Promos und Sonderausgaben</string>
+    <string name="sets_error">Sets konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
 </resources>

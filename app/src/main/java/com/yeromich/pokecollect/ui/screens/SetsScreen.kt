@@ -5,38 +5,37 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,8 +45,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.domain.model.CardSet
+import com.yeromich.pokecollect.ui.components.StatusBarScrim
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val LOGO_ASPECT = 16f / 9f
+
 @Composable
 fun SetsScreen(
     bottomPadding: Dp,
@@ -57,121 +58,129 @@ fun SetsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.screen_sets_title)) },
-                actions = {
-                    IconButton(onClick = onSearchClick) {
-                        Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.sets_search_all))
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding()),
-            contentAlignment = Alignment.Center
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = bottomPadding + 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
+            item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
+                SetsHeader(onSearchClick = onSearchClick)
+            }
             when (val state = uiState) {
-                is SetsViewModel.UiState.Loading -> CircularProgressIndicator()
-
-                is SetsViewModel.UiState.Error -> Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(state.message, style = MaterialTheme.typography.bodyMedium)
-                    Button(onClick = { /* retry handled by VM restart */ }) {
-                        Text(stringResource(R.string.catalog_error_retry))
+                SetsViewModel.UiState.Loading -> item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
+                    Box(Modifier.padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
                 }
 
-                is SetsViewModel.UiState.Success -> LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = bottomPadding + 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    state.groups.forEach { (seriesName, setsInSeries) ->
-                        item(key = "header_$seriesName", span = { GridItemSpan(maxLineSpan) }) {
-                            Text(
-                                text = seriesName,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                        items(setsInSeries, key = { set -> set.id }) { set ->
-                            SetCard(set = set, onClick = { onSetClick(set) })
-                        }
+                SetsViewModel.UiState.Error -> item(key = "error", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = stringResource(R.string.sets_error),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 64.dp)
+                    )
+                }
+
+                is SetsViewModel.UiState.Success -> state.groups.forEach { group ->
+                    item(key = "header_${group.name}", span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = group.name ?: stringResource(R.string.sets_series_other),
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 2.dp)
+                        )
+                    }
+                    items(group.sets, key = { set -> set.id }) { set ->
+                        SetTile(set = set, onClick = { onSetClick(set) })
                     }
                 }
             }
+        }
+        StatusBarScrim()
+    }
+}
+
+@Composable
+private fun SetsHeader(onSearchClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .statusBarsPadding()
+            .padding(start = 4.dp, top = 20.dp, bottom = 4.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.screen_sets_title),
+            style = MaterialTheme.typography.displaySmall,
+            modifier = Modifier.weight(1f)
+        )
+        FilledIconButton(
+            onClick = onSearchClick,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
+        ) {
+            Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.sets_search_all))
         }
     }
 }
 
 @Composable
-private fun SetCard(
-    set: CardSet,
-    onClick: () -> Unit
-) {
-    ElevatedCard(
+private fun SetTile(set: CardSet, onClick: () -> Unit) {
+    // Some sets have no logo, and some logo URLs 404; both fall back to a monogram.
+    var logoFailed by remember(set.id) { mutableStateOf(set.logoUrl.isEmpty()) }
+
+    Surface(
         onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            if (set.logoUrl.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                )
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(LOGO_ASPECT)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.small)
+                    .padding(10.dp)
+            ) {
+                if (logoFailed) {
                     Text(
                         text = set.name.take(1),
                         style = MaterialTheme.typography.displayMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(set.logoUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = set.name,
+                        contentScale = ContentScale.Fit,
+                        onError = { logoFailed = true },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
-            } else {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(set.logoUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = set.name,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                )
             }
             Text(
                 text = set.name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 6.dp)
+                modifier = Modifier.padding(start = 2.dp, top = 10.dp)
             )
             Text(
                 text = stringResource(R.string.sets_card_count, set.total),
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 1
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.padding(start = 2.dp, top = 2.dp)
             )
         }
     }
