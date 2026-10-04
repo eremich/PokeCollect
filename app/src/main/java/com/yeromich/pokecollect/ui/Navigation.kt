@@ -1,5 +1,21 @@
 package com.yeromich.pokecollect.ui
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Inventory2
@@ -11,8 +27,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -40,6 +58,27 @@ sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector)
 
 private val bottomBarScreens = listOf(Screen.Collection, Screen.Scanner, Screen.Sets)
 
+private val bottomBarRoutes = bottomBarScreens.map { it.route }.toSet()
+
+private const val TAB_FADE_MS = 150
+private const val PUSH_ENTER_MS = 260
+private const val PUSH_EXIT_MS = 200
+private const val BAR_MS = 220
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
+    initialState.destination.route in bottomBarRoutes && targetState.destination.route in bottomBarRoutes
+
+// Tabs are siblings, so they swap with a quick fade; deeper screens slide in from the side.
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.enter(fromEnd: Boolean): EnterTransition =
+    if (isTabSwitch()) fadeIn(tween(TAB_FADE_MS))
+    else slideInHorizontally(tween(PUSH_ENTER_MS, easing = LinearOutSlowInEasing)) { w -> if (fromEnd) w / 4 else -w / 4 } +
+            fadeIn(tween(PUSH_ENTER_MS, easing = LinearOutSlowInEasing))
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.exit(toStart: Boolean): ExitTransition =
+    if (isTabSwitch()) fadeOut(tween(TAB_FADE_MS))
+    else slideOutHorizontally(tween(PUSH_EXIT_MS, easing = FastOutLinearInEasing)) { w -> if (toStart) -w / 4 else w / 4 } +
+            fadeOut(tween(PUSH_EXIT_MS, easing = FastOutLinearInEasing))
+
 private fun Card.toEncodedJson(): String {
     val json = Json.encodeToString(this)
     return URLEncoder.encode(json, "UTF-8").replace("+", "%20")
@@ -56,7 +95,11 @@ fun PokeCollectApp() {
 
     Scaffold(
         bottomBar = {
-            if (showBottomBar) {
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = slideInVertically(tween(BAR_MS, easing = LinearOutSlowInEasing)) { it },
+                exit = slideOutVertically(tween(BAR_MS, easing = FastOutLinearInEasing)) { it }
+            ) {
                 NavigationBar {
                     bottomBarScreens.forEach { screen ->
                         NavigationBarItem(
@@ -78,9 +121,17 @@ fun PokeCollectApp() {
             }
         }
     ) { innerPadding ->
+        val bottomInset = PaddingValues(bottom = innerPadding.calculateBottomPadding())
         NavHost(
             navController = navController,
-            startDestination = Screen.Collection.route
+            startDestination = Screen.Collection.route,
+            modifier = Modifier
+                .padding(bottomInset)
+                .consumeWindowInsets(bottomInset),
+            enterTransition = { enter(fromEnd = true) },
+            exitTransition = { exit(toStart = true) },
+            popEnterTransition = { enter(fromEnd = false) },
+            popExitTransition = { exit(toStart = false) }
         ) {
             composable(Screen.Collection.route) {
                 CollectionScreen(
