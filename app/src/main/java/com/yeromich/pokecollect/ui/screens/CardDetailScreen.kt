@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
@@ -110,8 +113,14 @@ private fun CardDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // The small image is already in memory from the grid, so it fills the frame instantly
+        // while the large one loads and crossfades over it.
         AsyncImage(
-            model = card.imageLarge,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(card.imageLarge)
+                .placeholderMemoryCacheKey(card.imageSmall)
+                .crossfade(true)
+                .build(),
             contentDescription = card.name,
             modifier = Modifier
                 .fillMaxWidth()

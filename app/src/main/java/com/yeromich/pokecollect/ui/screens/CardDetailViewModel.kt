@@ -3,6 +3,7 @@ package com.yeromich.pokecollect.ui.screens
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yeromich.pokecollect.data.remote.CardDetailsCache
 import com.yeromich.pokecollect.data.remote.TcgdexApi
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
@@ -26,7 +27,8 @@ import javax.inject.Named
 class CardDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val collectionRepository: CollectionRepository,
-    @param:Named("tcgdex") private val tcgdexApi: TcgdexApi
+    @param:Named("tcgdex") private val tcgdexApi: TcgdexApi,
+    private val detailsCache: CardDetailsCache
 ) : ViewModel() {
 
     val card: Card = Json.decodeFromString(
@@ -41,41 +43,17 @@ class CardDetailViewModel @Inject constructor(
         .getQuantity(card.id)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    private val _cardDetails = MutableStateFlow<TcgdexCardDto?>(null)
+    // Seeded from cache so a card seen before renders its prices and variants on the first frame.
+    private val _cardDetails = MutableStateFlow(detailsCache[card.id])
     val cardDetails: StateFlow<TcgdexCardDto?> = _cardDetails.asStateFlow()
 
     val pricing: StateFlow<TcgdexCardmarketDto?> = _cardDetails
         .map { it?.pricing?.cardmarket }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _cardDetails.value?.pricing?.cardmarket)
 
     val availableVariants: StateFlow<List<String>> = _cardDetails
-        .map { details ->
-            if (details == null) {
-                listOf("Normal")
-            } else {
-                val fromDetailed = details.variants_detailed
-                    ?.map { v ->
-                        when (v.type.lowercase()) {
-                            "reverse" -> "Reverse Holo"
-                            "holo" -> "Holo"
-                            "normal" -> "Normal"
-                            else -> v.type
-                        }
-                    }
-                    ?.distinct()
-                    ?.ifEmpty { null }
-
-                fromDetailed ?: buildList {
-                    val v = details.variants
-                    if (v?.normal == true) add("Normal")
-                    if (v?.holo == true) add("Holo")
-                    if (v?.reverse == true) add("Reverse Holo")
-                    if (v?.firstEdition == true) add("1. Auflage")
-                    if (isEmpty()) add("Normal")
-                }
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), listOf("Normal"))
+        .map(::variantsOf)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), variantsOf(_cardDetails.value))
 
     val collectionCounts: StateFlow<Map<String, Int>> = collectionRepository
         .getVariantCounts(card.id)
@@ -84,18 +62,14 @@ class CardDetailViewModel @Inject constructor(
     val selectedVariant = MutableStateFlow("Normal")
 
     init {
-        viewModelScope.launch {
-            android.util.Log.d("CardDetail", "Loading card: ${card.id}")
-            runCatching { tcgdexApi.getCard(card.id) }
-                .onSuccess {
-                    android.util.Log.d("CardDetail", "pricing=${it.pricing}")
-                    android.util.Log.d("CardDetail", "variants=${it.variants}")
-                    android.util.Log.d("CardDetail", "variants_detailed=${it.variants_detailed}")
-                    _cardDetails.value = it
-                }
-                .onFailure {
-                    android.util.Log.e("CardDetail", "Error: ${it.message}", it)
-                }
+        if (_cardDetails.value == null) {
+            viewModelScope.launch {
+                runCatching { tcgdexApi.getCard(card.id) }
+                    .onSuccess {
+                        detailsCache[card.id] = it
+                        _cardDetails.value = it
+                    }
+            }
         }
         viewModelScope.launch {
             collectionRepository.getVariantCounts(card.id)
@@ -104,6 +78,32 @@ class CardDetailViewModel @Inject constructor(
                 ?.let { if (selectedVariant.value == "Normal") selectedVariant.value = it }
         }
     }
+
+    private fun variantsOf(details: TcgdexCardDto?): List<String> =
+        if (details == null) {
+            listOf("Normal")
+        } else {
+            val fromDetailed = details.variants_detailed
+                ?.map { v ->
+                    when (v.type.lowercase()) {
+                        "reverse" -> "Reverse Holo"
+                        "holo" -> "Holo"
+                        "normal" -> "Normal"
+                        else -> v.type
+                    }
+                }
+                ?.distinct()
+                ?.ifEmpty { null }
+
+            fromDetailed ?: buildList {
+                val v = details.variants
+                if (v?.normal == true) add("Normal")
+                if (v?.holo == true) add("Holo")
+                if (v?.reverse == true) add("Reverse Holo")
+                if (v?.firstEdition == true) add("1. Auflage")
+                if (isEmpty()) add("Normal")
+            }
+        }
 
     fun selectVariant(variant: String) {
         selectedVariant.value = variant
