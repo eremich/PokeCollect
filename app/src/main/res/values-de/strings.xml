@@ -57,4 +57,5 @@
     <string name="detail_price_low">Niedrigster</string>
     <string name="sets_series_other">Promos und Sonderausgaben</string>
     <string name="sets_error">Sets konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="scanner_error_generic">Karte konnte nicht gelesen werden. Versuche es bei besserem Licht erneut.</string>
 </resources>

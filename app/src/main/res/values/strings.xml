@@ -57,4 +57,5 @@
     <string name="detail_price_low">Lowest</string>
     <string name="sets_series_other">Promos and specials</string>
     <string name="sets_error">Couldn\'t load sets. Check your connection and try again.</string>
+    <string name="scanner_error_generic">Couldn\'t read this card. Try again in better light.</string>
 </resources>

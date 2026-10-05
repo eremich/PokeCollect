@@ -1,5 +1,24 @@
 package com.yeromich.pokecollect.ui.screens
 
+import com.yeromich.pokecollect.ui.theme.Paper
+import com.yeromich.pokecollect.ui.theme.Ink
+import com.yeromich.pokecollect.ui.theme.Holo
+import com.yeromich.pokecollect.ui.components.CardShape
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.border
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -37,12 +56,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -68,14 +85,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -87,9 +102,15 @@ import coil3.compose.AsyncImage
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.domain.usecase.RecognitionResult
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
-import kotlin.coroutines.resume
+
+
+private const val CARD_ASPECT = 0.72f
+private const val CARD_CORNER_FRACTION = 0.045f
+private const val CORNER_ARM_FRACTION = 0.16f
+private const val SCRIM_ALPHA = 0.65f
+private const val SHUTTER_PRESSED_SCALE = 0.86f
+private const val SHUTTER_PRESS_MS = 120
 
 @Composable
 fun ScannerScreen(
@@ -103,7 +124,6 @@ fun ScannerScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
-    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -160,28 +180,31 @@ fun ScannerScreen(
                     }
                 }
 
-                LaunchedEffect(previewView) {
-                    val provider = suspendCancellableCoroutine<ProcessCameraProvider> { cont ->
-                        val future = ProcessCameraProvider.getInstance(context)
-                        future.addListener({ cont.resume(future.get()) }, ContextCompat.getMainExecutor(context))
-                    }
-                    cameraProvider = provider
-
-                    val preview = Preview.Builder().build()
-                    preview.surfaceProvider = previewView.surfaceProvider
-
+                // Each viewfinder binds and later unbinds only its own use cases. A blanket unbindAll()
+                // from a screen that is leaving could otherwise switch off the camera that the
+                // returning screen just started, leaving a black preview.
+                DisposableEffect(previewView, lifecycleOwner) {
+                    val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .setTargetRotation(previewView.display?.rotation ?: Surface.ROTATION_0)
                         .build()
-                    imageCapture = capture
+                    var provider: ProcessCameraProvider? = null
+                    var disposed = false
+                    val future = ProcessCameraProvider.getInstance(context)
+                    future.addListener({
+                        if (disposed) return@addListener
+                        provider = future.get().also {
+                            it.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, capture)
+                        }
+                        imageCapture = capture
+                    }, ContextCompat.getMainExecutor(context))
 
-                    provider.unbindAll()
-                    provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, capture)
-                }
-
-                DisposableEffect(Unit) {
-                    onDispose { cameraProvider?.unbindAll() }
+                    onDispose {
+                        disposed = true
+                        provider?.unbind(preview, capture)
+                        if (imageCapture === capture) imageCapture = null
+                    }
                 }
 
                 AndroidView(
@@ -204,9 +227,9 @@ fun ScannerScreen(
                         val fh = fw / 0.72f
                         val fl = (size.width - fw) / 2f
                         val ft = (size.height - fh) / 2f
-                        val cr = 16.dp.toPx()
+                        val cr = fw * CARD_CORNER_FRACTION
 
-                        drawRect(Color.Black.copy(alpha = 0.55f))
+                        drawRect(Ink.copy(alpha = SCRIM_ALPHA))
 
                         drawRoundRect(
                             color = Color.Transparent,
@@ -216,34 +239,24 @@ fun ScannerScreen(
                             blendMode = BlendMode.Clear
                         )
 
-                        drawRoundRect(
-                            color = Color.White,
-                            topLeft = Offset(fl, ft),
-                            size = Size(fw, fh),
-                            cornerRadius = CornerRadius(cr),
-                            style = Stroke(width = 2.dp.toPx())
-                        )
+                        drawViewfinderCorners(fl, ft, fw, fh, cr, Holo, 3.dp.toPx())
                     }
 
                     Text(
                         text = stringResource(R.string.scanner_hint),
-                        color = Color.White,
-                        style = TextStyle(
-                            shadow = Shadow(
-                                color = Color.Black.copy(alpha = 0.7f),
-                                offset = Offset(0f, 1f),
-                                blurRadius = 4f
-                            )
-                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Paper,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = frameBottom + 16.dp)
+                            .padding(top = frameBottom + 20.dp)
+                            .background(Ink.copy(alpha = 0.6f), CircleShape)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
 
                 CloseButton(onClose, Modifier.align(Alignment.TopEnd).statusBarsPadding())
 
-                FloatingActionButton(
+                ShutterButton(
                     onClick = {
                         if (state is ScannerUiState.Ready) {
                             viewModel.onCapturing()
@@ -266,11 +279,8 @@ fun ScannerScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
-                        .padding(bottom = 32.dp)
-                        .size(72.dp)
-                ) {
-                    Icon(Icons.Filled.CameraAlt, contentDescription = stringResource(R.string.scanner_capture))
-                }
+                        .padding(bottom = 40.dp)
+                )
             }
 
             is ScannerUiState.Captured -> {
@@ -342,7 +352,7 @@ fun ScannerScreen(
                             contentScale = ContentScale.Crop
                         )
                     }
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
+                    Box(Modifier.fillMaxSize().background(Ink.copy(alpha = 0.7f)))
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
                         color = Color.White
@@ -366,8 +376,15 @@ fun ScannerScreen(
                     file = s.file,
                     result = s.result,
                     onRetake = { viewModel.onRetake() },
-                    onCardSelected = onCardSelected,
-                    onSearchManual = onSearchManual
+                    // Reset first, so coming back from the card shows a live camera, not this result.
+                    onCardSelected = { card ->
+                        viewModel.onRetake()
+                        onCardSelected(card)
+                    },
+                    onSearchManual = { query ->
+                        viewModel.onRetake()
+                        onSearchManual(query)
+                    }
                 )
             }
 
@@ -376,7 +393,7 @@ fun ScannerScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(s.message, color = Color.White, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.scanner_error_generic), color = Paper, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = { viewModel.onRetake() }) {
                         Text(stringResource(R.string.scanner_error_back))
@@ -423,7 +440,7 @@ private fun RecognizedContent(
                 contentScale = ContentScale.Crop
             )
         }
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+        Box(Modifier.fillMaxSize().background(Ink.copy(alpha = 0.55f)))
 
         when (result) {
             is RecognitionResult.Success -> {
@@ -445,7 +462,10 @@ private fun RecognizedContent(
                                         AsyncImage(
                                             model = card.imageSmall,
                                             contentDescription = null,
-                                            modifier = Modifier.size(48.dp)
+                                            modifier = Modifier
+                                                .width(48.dp)
+                                                .aspectRatio(CARD_ASPECT)
+                                                .clip(CardShape)
                                         )
                                     },
                                     modifier = Modifier.clickable { onCardSelected(card) }
@@ -509,7 +529,7 @@ private fun RecognizedContent(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(result.message, color = Color.White, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.scanner_error_generic), color = Paper, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetake) { Text(stringResource(R.string.scanner_retake)) }
                 }
@@ -520,7 +540,65 @@ private fun RecognizedContent(
 
 @Composable
 private fun CloseButton(onClose: () -> Unit, modifier: Modifier) {
-    IconButton(onClick = onClose, modifier = modifier) {
-        Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White)
+    FilledIconButton(
+        onClick = onClose,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = Ink.copy(alpha = 0.6f),
+            contentColor = Paper
+        ),
+        modifier = modifier.padding(12.dp)
+    ) {
+        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.scanner_close))
+    }
+}
+
+@Composable
+private fun ShutterButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) SHUTTER_PRESSED_SCALE else 1f, tween(SHUTTER_PRESS_MS), label = "shutter")
+    val label = stringResource(R.string.scanner_capture)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(80.dp)
+            .border(4.dp, Paper, CircleShape)
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics { contentDescription = label }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(Paper, CircleShape)
+        )
+    }
+}
+
+private fun DrawScope.drawViewfinderCorners(
+    left: Float, top: Float, width: Float, height: Float, radius: Float, color: Color, stroke: Float
+) {
+    val arm = width * CORNER_ARM_FRACTION
+    val right = left + width
+    val bottom = top + height
+    val d = radius * 2
+    val style = Stroke(width = stroke, cap = StrokeCap.Round)
+    listOf(
+        Triple(Offset(left, top), 180f, listOf(Offset(left, top + radius) to Offset(left, top + arm), Offset(left + radius, top) to Offset(left + arm, top))),
+        Triple(Offset(right - d, top), 270f, listOf(Offset(right - radius, top) to Offset(right - arm, top), Offset(right, top + radius) to Offset(right, top + arm))),
+        Triple(Offset(right - d, bottom - d), 0f, listOf(Offset(right, bottom - radius) to Offset(right, bottom - arm), Offset(right - radius, bottom) to Offset(right - arm, bottom))),
+        Triple(Offset(left, bottom - d), 90f, listOf(Offset(left + radius, bottom) to Offset(left + arm, bottom), Offset(left, bottom - radius) to Offset(left, bottom - arm)))
+    ).forEach { (arcTopLeft, startAngle, lines) ->
+        drawArc(color, startAngle, 90f, useCenter = false, topLeft = arcTopLeft, size = Size(d, d), style = style)
+        lines.forEach { (from, to) -> drawLine(color, from, to, stroke, StrokeCap.Round) }
     }
 }
