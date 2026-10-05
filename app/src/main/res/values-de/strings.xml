@@ -17,7 +17,6 @@
     <string name="catalog_empty">Nichts gefunden</string>
     <string name="catalog_error_generic">Ladefehler</string>
     <string name="catalog_error_retry">Wiederholen</string>
-    <string name="collection_count_title">Meine Sammlung (%d)</string>
     <string name="collection_empty_hint">Sammlung ist leer. Finde eine Karte und füge sie hinzu.</string>
     <string name="detail_add_to_collection">Zur Sammlung hinzufügen</string>
     <string name="detail_in_collection">In der Sammlung (×%d)</string>
@@ -43,4 +42,13 @@
     <string name="scanner_found_candidates">%d Ergebnisse gefunden</string>
     <string name="scanner_card_name_label">Kartenname</string>
     <string name="scanner_search">Suchen</string>
+    <string name="collection_title">Sammlung</string>
+    <plurals name="collection_stat_cards">
+        <item quantity="one">Karte</item>
+        <item quantity="other">Karten</item>
+    </plurals>
+    <plurals name="collection_stat_sets">
+        <item quantity="one">Set</item>
+        <item quantity="other">Sets</item>
+    </plurals>
 </resources>

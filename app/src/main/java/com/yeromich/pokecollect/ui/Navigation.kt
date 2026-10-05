@@ -2,6 +2,7 @@ package com.yeromich.pokecollect.ui
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -13,7 +14,18 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -21,13 +33,18 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavBackStackEntry
@@ -100,24 +117,20 @@ fun PokeCollectApp() {
                 enter = slideInVertically(tween(BAR_MS, easing = LinearOutSlowInEasing)) { it },
                 exit = slideOutVertically(tween(BAR_MS, easing = FastOutLinearInEasing)) { it }
             ) {
-                NavigationBar {
-                    bottomBarScreens.forEach { screen ->
-                        NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
-                            label = { Text(stringResource(screen.labelRes)) },
-                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                FloatingTabBar(
+                    selectedRoute = bottomBarScreens.firstOrNull { screen ->
+                        currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                    }?.route,
+                    onSelect = { screen ->
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        )
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
+                )
             }
         }
     ) { innerPadding ->
@@ -176,5 +189,52 @@ fun PokeCollectApp() {
                 CardDetailScreen(onNavigateBack = { navController.popBackStack() })
             }
         }
+    }
+}
+
+@Composable
+private fun FloatingTabBar(selectedRoute: String?, onSelect: (Screen) -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+        shape = CircleShape,
+        modifier = Modifier
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .fillMaxWidth()
+            .height(64.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            bottomBarScreens.forEach { screen ->
+                TabItem(
+                    screen = screen,
+                    selected = screen.route == selectedRoute,
+                    onClick = { onSelect(screen) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabItem(screen: Screen, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val background by animateColorAsState(if (selected) colors.primaryContainer else Color.Transparent, tween(BAR_MS), label = "tabBg")
+    val content by animateColorAsState(if (selected) colors.primary else colors.onSurfaceVariant, tween(BAR_MS), label = "tabFg")
+    val label = stringResource(screen.labelRes)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(CircleShape)
+            .background(background)
+            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+    ) {
+        Icon(screen.icon, contentDescription = null, tint = content, modifier = Modifier.size(22.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = content)
     }
 }

@@ -17,7 +17,6 @@
     <string name="catalog_empty">Nothing found</string>
     <string name="catalog_error_generic">Loading error</string>
     <string name="catalog_error_retry">Retry</string>
-    <string name="collection_count_title">My Collection (%d)</string>
     <string name="collection_empty_hint">Collection is empty. Find a card in the catalog and add it.</string>
     <string name="detail_add_to_collection">Add to Collection</string>
     <string name="detail_in_collection">In Collection (×%d)</string>
@@ -43,4 +42,13 @@
     <string name="scanner_found_candidates">Found %d results</string>
     <string name="scanner_card_name_label">Card name</string>
     <string name="scanner_search">Search</string>
+    <string name="collection_title">Collection</string>
+    <plurals name="collection_stat_cards">
+        <item quantity="one">card</item>
+        <item quantity="other">cards</item>
+    </plurals>
+    <plurals name="collection_stat_sets">
+        <item quantity="one">set</item>
+        <item quantity="other">sets</item>
+    </plurals>
 </resources>
