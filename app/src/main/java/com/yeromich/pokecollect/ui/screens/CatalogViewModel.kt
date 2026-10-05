@@ -26,8 +26,9 @@ class CatalogViewModel @Inject constructor(
     private val repository: CardRepository
 ) : ViewModel() {
 
-    val setId: String? = savedStateHandle.get<String>("setId")
-    val setName: String? = savedStateHandle.get<String>("setName")
+    // The scanner opens the catalog with empty set arguments; treat them as "no set".
+    val setId: String? = savedStateHandle.get<String>("setId")?.takeIf { it.isNotBlank() }
+    val setName: String? = savedStateHandle.get<String>("setName")?.takeIf { it.isNotBlank() }
         ?.let { URLDecoder.decode(it, "UTF-8") }
 
     private val initialQuery = savedStateHandle.get<String>("query")
