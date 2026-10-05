@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -51,13 +53,15 @@ class CardDetailViewModel @Inject constructor(
         .map { it?.pricing?.cardmarket }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _cardDetails.value?.pricing?.cardmarket)
 
-    val availableVariants: StateFlow<List<String>> = _cardDetails
-        .map(::variantsOf)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), variantsOf(_cardDetails.value))
-
     val collectionCounts: StateFlow<Map<String, Int>> = collectionRepository
         .getVariantCounts(card.id)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    // Copies stored under a variant this card doesn't offer still get a pill, so they never vanish.
+    val availableVariants: StateFlow<List<String>> = combine(_cardDetails, collectionCounts) { details, counts ->
+        val offered = variantsOf(details)
+        offered + counts.keys.filter { it !in offered }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), variantsOf(_cardDetails.value))
 
     val selectedVariant = MutableStateFlow("Normal")
 
@@ -71,6 +75,7 @@ class CardDetailViewModel @Inject constructor(
                     }
             }
         }
+        viewModelScope.launch { refileLegacyVariants() }
         viewModelScope.launch {
             collectionRepository.getVariantCounts(card.id)
                 .first { it.isNotEmpty() }
@@ -104,6 +109,17 @@ class CardDetailViewModel @Inject constructor(
                 if (isEmpty()) add("Normal")
             }
         }
+
+    // Cards added before variant selection existed were all stored as "Normal". When the card
+    // offers exactly one variant, those copies can only be that variant, so re-file them.
+    private suspend fun refileLegacyVariants() {
+        val offered = variantsOf(_cardDetails.filterNotNull().first())
+        val only = offered.singleOrNull() ?: return
+        val orphans = collectionRepository.getVariantCounts(card.id).first().keys.filter { it !in offered }
+        if (orphans.isEmpty()) return
+        orphans.forEach { collectionRepository.moveVariant(card.id, it, only) }
+        selectedVariant.value = only
+    }
 
     fun selectVariant(variant: String) {
         selectedVariant.value = variant

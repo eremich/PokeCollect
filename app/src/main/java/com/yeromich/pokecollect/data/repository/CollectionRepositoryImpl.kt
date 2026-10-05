@@ -35,6 +35,9 @@ class CollectionRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun moveVariant(cardId: String, from: String, to: String) =
+        dao.moveVariant(cardId, from, to)
+
     override suspend fun removeOne(cardId: String, variant: String) {
         val existing = dao.getByIdAndVariant(cardId, variant).first()
         if (existing != null) {

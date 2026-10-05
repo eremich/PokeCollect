@@ -11,6 +11,7 @@ interface CollectionRepository {
     suspend fun addOrIncrement(card: Card)
     suspend fun addOrIncrementVariant(card: Card, variant: String)
     suspend fun removeOne(cardId: String, variant: String)
+    suspend fun moveVariant(cardId: String, from: String, to: String)
     fun getVariantCounts(cardId: String): Flow<Map<String, Int>>
     suspend fun remove(id: String)
 }
