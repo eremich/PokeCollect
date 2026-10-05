@@ -26,7 +26,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            // Debug key so the optimized build installs from Android Studio; swap for a real key before publishing.
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
