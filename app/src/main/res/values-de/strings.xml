@@ -4,7 +4,7 @@
     <string name="nav_collection">Sammlung</string>
     <string name="nav_scanner">Scanner</string>
     <string name="nav_catalog">Katalog</string>
-    <string name="nav_sets">Suche</string>
+    <string name="nav_sets">Sets</string>
     <string name="screen_collection_title">Meine Sammlung</string>
     <string name="screen_collection_empty">Sammlung ist leer</string>
     <string name="screen_scanner_title">Scanner</string>

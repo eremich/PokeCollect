@@ -15,6 +15,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,7 +36,6 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +58,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.yeromich.pokecollect.R
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.ui.screens.CardDetailScreen
 import com.yeromich.pokecollect.ui.screens.CatalogScreen
@@ -81,6 +87,12 @@ private const val TAB_FADE_MS = 150
 private const val PUSH_ENTER_MS = 260
 private const val PUSH_EXIT_MS = 200
 private const val BAR_MS = 220
+
+private val GLASS_BLUR = 24.dp
+private const val GLASS_TINT_ALPHA = 0.55f
+private const val GLASS_FALLBACK_ALPHA = 0.92f
+private const val GLASS_NOISE = 0.05f
+private const val GLASS_EDGE_ALPHA = 0.12f
 
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
     initialState.destination.route in bottomBarRoutes && targetState.destination.route in bottomBarRoutes
@@ -109,6 +121,7 @@ fun PokeCollectApp() {
 
     val showBottomBar = currentDestination?.route == Screen.Collection.route ||
             currentDestination?.route == Screen.Sets.route
+    val hazeState = rememberHazeState()
 
     Scaffold(
         bottomBar = {
@@ -118,6 +131,7 @@ fun PokeCollectApp() {
                 exit = slideOutVertically(tween(BAR_MS, easing = FastOutLinearInEasing)) { it }
             ) {
                 FloatingTabBar(
+                    hazeState = hazeState,
                     selectedRoute = bottomBarScreens.firstOrNull { screen ->
                         currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     }?.route,
@@ -134,11 +148,15 @@ fun PokeCollectApp() {
             }
         }
     ) { innerPadding ->
-        val bottomInset = PaddingValues(bottom = innerPadding.calculateBottomPadding())
+        // Tab screens scroll underneath the frosted bar and pad their own lists by its height;
+        // deeper screens keep clear of the system navigation bar instead.
+        val barHeight = innerPadding.calculateBottomPadding()
+        val bottomInset = PaddingValues(bottom = if (showBottomBar) 0.dp else barHeight)
         NavHost(
             navController = navController,
             startDestination = Screen.Collection.route,
             modifier = Modifier
+                .hazeSource(hazeState)
                 .padding(bottomInset)
                 .consumeWindowInsets(bottomInset),
             enterTransition = { enter(fromEnd = true) },
@@ -148,6 +166,7 @@ fun PokeCollectApp() {
         ) {
             composable(Screen.Collection.route) {
                 CollectionScreen(
+                    bottomPadding = barHeight,
                     onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") }
                 )
             }
@@ -162,6 +181,7 @@ fun PokeCollectApp() {
             }
             composable(Screen.Sets.route) {
                 SetsScreen(
+                    bottomPadding = barHeight,
                     onSetClick = { set ->
                         val encodedName = URLEncoder.encode(set.name, "UTF-8")
                         navController.navigate("catalog?setId=${set.id}&setName=$encodedName")
@@ -193,15 +213,23 @@ fun PokeCollectApp() {
 }
 
 @Composable
-private fun FloatingTabBar(selectedRoute: String?, onSelect: (Screen) -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
-        shape = CircleShape,
+private fun FloatingTabBar(hazeState: HazeState, selectedRoute: String?, onSelect: (Screen) -> Unit) {
+    val glass = MaterialTheme.colorScheme.surfaceContainerHigh
+    Box(
         modifier = Modifier
             .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 12.dp)
             .fillMaxWidth()
             .height(64.dp)
+            .clip(CircleShape)
+            .hazeEffect(state = hazeState) {
+                blurRadius = GLASS_BLUR
+                tints = listOf(HazeTint(glass.copy(alpha = GLASS_TINT_ALPHA)))
+                noiseFactor = GLASS_NOISE
+                // Below Android 12 there is no real blur, so lean on a denser tint.
+                fallbackTint = HazeTint(glass.copy(alpha = GLASS_FALLBACK_ALPHA))
+            }
+            .border(0.5.dp, Color.White.copy(alpha = GLASS_EDGE_ALPHA), CircleShape)
     ) {
         Row(
             modifier = Modifier.padding(6.dp),

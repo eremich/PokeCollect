@@ -36,6 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +50,7 @@ import com.yeromich.pokecollect.domain.model.CardSet
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetsScreen(
+    bottomPadding: Dp,
     onSetClick: (CardSet) -> Unit,
     onSearchClick: () -> Unit,
     viewModel: SetsViewModel = hiltViewModel()
@@ -55,6 +58,7 @@ fun SetsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.screen_sets_title)) },
@@ -69,7 +73,7 @@ fun SetsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(top = innerPadding.calculateTopPadding()),
             contentAlignment = Alignment.Center
         ) {
             when (val state = uiState) {
@@ -87,7 +91,7 @@ fun SetsScreen(
 
                 is SetsViewModel.UiState.Success -> LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(8.dp),
+                    contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = bottomPadding + 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
