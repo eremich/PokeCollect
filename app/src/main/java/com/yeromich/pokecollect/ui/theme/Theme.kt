@@ -1,58 +1,63 @@
 package com.yeromich.pokecollect.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+// Dark only: cards and foil read best against a near-black backdrop.
+private val HoloColorScheme = darkColorScheme(
+    primary = Holo,
+    onPrimary = HoloDeep,
+    primaryContainer = HoloContainer,
+    onPrimaryContainer = OnHoloContainer,
+    secondary = Foil,
+    onSecondary = FoilDeep,
+    secondaryContainer = InkHighest,
+    onSecondaryContainer = Paper,
+    tertiary = Foil,
+    onTertiary = FoilDeep,
+    background = Ink,
+    onBackground = Paper,
+    surface = Ink,
+    onSurface = Paper,
+    surfaceVariant = InkHigh,
+    onSurfaceVariant = PaperMuted,
+    surfaceDim = Ink,
+    surfaceBright = InkHighest,
+    surfaceContainerLowest = Ink,
+    surfaceContainerLow = InkRaised,
+    surfaceContainer = InkRaised,
+    surfaceContainerHigh = InkHigh,
+    surfaceContainerHighest = InkHighest,
+    outline = Hairline,
+    outlineVariant = InkHighest,
+    error = Danger,
+    onError = DangerDeep,
+    errorContainer = DangerContainer,
+    onErrorContainer = Paper,
+    inverseSurface = Paper,
+    inverseOnSurface = Ink,
+    inversePrimary = HoloContainer,
+    scrim = Ink
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val HoloShapes = Shapes(
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp)
 )
 
 @Composable
-fun PokeCollectTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+fun PokeCollectTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = HoloColorScheme,
         typography = Typography,
+        shapes = HoloShapes,
         content = content
     )
 }
