@@ -14,5 +14,8 @@ data class CollectedCardEntity(
     val imageLarge: String,
     val addedAt: Long,
     val quantity: Int = 1,
-    val condition: String? = null
+    val condition: String? = null,
+    /** Last known Cardmarket trend for this variant, in euros; null when Cardmarket has none. */
+    val priceEur: Double? = null,
+    val priceUpdatedAt: Long? = null
 )

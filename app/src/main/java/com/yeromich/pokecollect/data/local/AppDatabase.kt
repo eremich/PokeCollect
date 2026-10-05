@@ -5,11 +5,18 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [CollectedCardEntity::class], version = 2, exportSchema = false)
+@Database(entities = [CollectedCardEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun collectedCardDao(): CollectedCardDao
 
     companion object {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `collected_cards` ADD COLUMN `priceEur` REAL")
+                db.execSQL("ALTER TABLE `collected_cards` ADD COLUMN `priceUpdatedAt` INTEGER")
+            }
+        }
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""

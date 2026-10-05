@@ -49,6 +49,29 @@ interface CollectedCardDao {
         upsert(target?.copy(quantity = target.quantity + source.quantity) ?: source.copy(variant = to))
     }
 
+    @Query("UPDATE collected_cards SET priceEur = :priceEur, priceUpdatedAt = :updatedAt WHERE id = :cardId AND variant = :variant")
+    suspend fun updatePrice(cardId: String, variant: String, priceEur: Double?, updatedAt: Long)
+
+    @Query("SELECT * FROM collected_cards WHERE priceUpdatedAt IS NULL OR priceUpdatedAt < :before")
+    suspend fun getWithStalePrices(before: Long): List<CollectedCardEntity>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(priceEur * quantity), 0) AS totalEur,
+               COALESCE(SUM(CASE WHEN priceEur IS NOT NULL THEN 1 ELSE 0 END), 0) AS pricedEntries,
+               COUNT(*) AS entries
+        FROM collected_cards
+        """
+    )
+    fun getValue(): Flow<CollectionValue>
+
     @Query("SELECT COUNT(*) FROM collected_cards")
     fun getCount(): Flow<Int>
 }
+
+/** Collection worth at last known prices. Entries without a Cardmarket price add nothing. */
+data class CollectionValue(
+    val totalEur: Double,
+    val pricedEntries: Int,
+    val entries: Int
+)
