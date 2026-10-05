@@ -1,55 +1,80 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.domain.model.Card
+import com.yeromich.pokecollect.ui.components.HoloCard
+import com.yeromich.pokecollect.ui.components.isFoilVariant
+import com.yeromich.pokecollect.ui.theme.Ink
+import java.text.NumberFormat
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val COLOR_FADE_MS = 400
+private const val GLOW_ALPHA = 0.38f
+
+// TCGdex returns German type names for the /de endpoint.
+private val typeColors = mapOf(
+    "Pflanze" to Color(0xFF7BC96F),
+    "Feuer" to Color(0xFFFF8A5B),
+    "Wasser" to Color(0xFF5DB2F0),
+    "Elektro" to Color(0xFFF7D154),
+    "Psycho" to Color(0xFFC18BFF),
+    "Kampf" to Color(0xFFE0915C),
+    "Finsternis" to Color(0xFF8E93C2),
+    "Metall" to Color(0xFFAAB8C6),
+    "Drache" to Color(0xFFD9B95C),
+    "Fee" to Color(0xFFF59AD2),
+    "Farblos" to Color(0xFFD6D2CA)
+)
+
+// Cardmarket is a euro market, so prices read the way German sellers write them: "7,30 €".
+private val euro: NumberFormat = NumberFormat.getCurrencyInstance(Locale.GERMANY)
+
 @Composable
 fun CardDetailScreen(
     onNavigateBack: () -> Unit,
@@ -61,29 +86,32 @@ fun CardDetailScreen(
     val selectedVariant by viewModel.selectedVariant.collectAsStateWithLifecycle()
     val collectionCounts by viewModel.collectionCounts.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(viewModel.card.name, maxLines = 1) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
+    val typeColor = cardDetails?.types?.firstNotNullOfOrNull { typeColors[it] } ?: MaterialTheme.colorScheme.primary
+    val accent by animateColorAsState(typeColor, tween(COLOR_FADE_MS), label = "typeAccent")
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.6f)
+                .background(Brush.verticalGradient(listOf(accent.copy(alpha = GLOW_ALPHA), Color.Transparent)))
+        )
         CardDetailContent(
             card = viewModel.card,
             cardDetails = cardDetails,
             pricing = pricing,
+            accent = accent,
             availableVariants = availableVariants,
             selectedVariant = selectedVariant,
             collectionCounts = collectionCounts,
+            onNavigateBack = onNavigateBack,
             onVariantSelected = viewModel::selectVariant,
             onAddOrIncrement = viewModel::addOrIncrement,
-            onRemoveOne = viewModel::removeOne,
-            modifier = Modifier.padding(innerPadding)
+            onRemoveOne = viewModel::removeOne
         )
     }
 }
@@ -93,163 +121,198 @@ private fun CardDetailContent(
     card: Card,
     cardDetails: TcgdexCardDto?,
     pricing: TcgdexCardmarketDto?,
+    accent: Color,
     availableVariants: List<String>,
     selectedVariant: String,
     collectionCounts: Map<String, Int>,
+    onNavigateBack: () -> Unit,
     onVariantSelected: (String) -> Unit,
     onAddOrIncrement: () -> Unit,
-    onRemoveOne: () -> Unit,
-    modifier: Modifier = Modifier
+    onRemoveOne: () -> Unit
 ) {
     val rarity = cardDetails?.rarity ?: card.rarity
-    val seriesName = cardDetails?.set?.serie?.name
     val setName = cardDetails?.set?.name ?: card.setName
     val selectedCount = collectionCounts[selectedVariant] ?: 0
+    val foil = isFoilVariant(selectedVariant)
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 24.dp)
     ) {
-        // The small image is already in memory from the grid, so it fills the frame instantly
-        // while the large one loads and crossfades over it.
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(card.imageLarge)
-                .placeholderMemoryCacheKey(card.imageSmall)
-                .crossfade(true)
-                .build(),
-            contentDescription = card.name,
+        FilledIconButton(
+            onClick = onNavigateBack,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier.padding(top = 4.dp)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_back))
+        }
+
+        HoloCard(
+            card = card,
+            foil = foil,
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.72f),
-            contentScale = ContentScale.Fit
+                .padding(top = 8.dp)
+                .fillMaxWidth(0.84f)
+                .aspectRatio(0.72f)
+                .align(Alignment.CenterHorizontally)
         )
+
+        Text(
+            text = card.name,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(top = 28.dp)
+        )
+        Text(
+            text = "$setName · ${card.number}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        if (rarity != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Icon(Icons.Filled.Star, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+                Text(rarity, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
 
         if (availableVariants.isNotEmpty()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.horizontalScroll(rememberScrollState())
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .horizontalScroll(rememberScrollState())
             ) {
                 availableVariants.forEach { variant ->
-                    val count = collectionCounts[variant] ?: 0
-                    FilterChip(
+                    VariantPill(
+                        label = variant,
+                        count = collectionCounts[variant] ?: 0,
                         selected = variant == selectedVariant,
-                        onClick = { onVariantSelected(variant) },
-                        label = { Text(if (count > 0) "$variant ×$count" else variant) }
+                        accent = accent,
+                        onClick = { onVariantSelected(variant) }
                     )
                 }
             }
         }
 
-        if (selectedCount > 0) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
+        pricing?.let { PriceBlock(it, foil, Modifier.padding(top = 24.dp)) }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 28.dp)
+        ) {
+            if (selectedCount > 0) {
+                OutlinedIconButton(
                     onClick = onRemoveOne,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                ) { Text(stringResource(R.string.detail_remove_one)) }
-                Button(
-                    onClick = onAddOrIncrement,
-                    modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.detail_add_more)) }
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.detail_remove_one))
+                }
             }
-        } else {
             Button(
                 onClick = onAddOrIncrement,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(stringResource(R.string.detail_add_to_collection)) }
-        }
-
-        if (rarity != null) {
-            AssistChip(
-                onClick = {},
-                label = { Text(rarity) },
-                leadingIcon = { Icon(Icons.Filled.Star, contentDescription = null) }
-            )
-        }
-
-        if (seriesName != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = stringResource(R.string.detail_series, seriesName), style = MaterialTheme.typography.bodyMedium)
-                Text(text = stringResource(R.string.detail_set, setName), style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-
-        pricing?.let { cm ->
-            Spacer(Modifier.height(4.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Ink),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
             ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Cardmarket (EUR)",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        cm.trend?.let { PriceColumn("Trend", it) }
-                        cm.avg30?.let { PriceColumn("Ø 30d", it) }
-                        cm.low?.let { PriceColumn("Low", it) }
-                    }
-                    if (cm.trendHolo != null || cm.avgHolo != null) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "Holo",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            cm.trendHolo?.let { PriceColumn("Trend", it) }
-                            cm.avgHolo?.let { PriceColumn("Ø 30d", it) }
-                            cm.lowHolo?.let { PriceColumn("Low", it) }
-                        }
-                    }
-                    cm.updated?.let { updated ->
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.detail_updated, updated.take(10)),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
+                Text(
+                    text = stringResource(if (selectedCount > 0) R.string.detail_add_more else R.string.detail_add_to_collection),
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PriceColumn(label: String, price: Double) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "€%.2f".format(price),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+private fun VariantPill(label: String, count: Int, selected: Boolean, accent: Color, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = if (selected) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, if (selected) accent else Color.Transparent)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (count > 0) {
+                Text("×$count", style = MaterialTheme.typography.labelLarge, color = accent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PriceBlock(cm: TcgdexCardmarketDto, foil: Boolean, modifier: Modifier = Modifier) {
+    // Foil variants trade at their own price, so follow the selected variant when TCGdex has it.
+    // TCGdex reports "no data" as 0, which must never show up as a real price.
+    val useHolo = foil && cm.trendHolo.orNone() != null
+    val trend = (if (useHolo) cm.trendHolo else cm.trend).orNone()
+    val average = (if (useHolo) cm.avgHolo else cm.avg30).orNone()
+    val low = (if (useHolo) cm.lowHolo else cm.low).orNone()
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text(
+                text = stringResource(R.string.detail_price_trend),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = trend?.let(euro::format) ?: "—",
+                style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(28.dp),
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                average?.let { PriceStat(stringResource(R.string.detail_price_avg30), it) }
+                low?.let { PriceStat(stringResource(R.string.detail_price_low), it) }
+            }
+            cm.updated?.let { updated ->
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.detail_updated, updated.take(10)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+    }
+}
+
+private fun Double?.orNone(): Double? = this?.takeIf { it > 0.0 }
+
+@Composable
+private fun PriceStat(label: String, price: Double) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(euro.format(price), style = MaterialTheme.typography.titleMedium)
     }
 }

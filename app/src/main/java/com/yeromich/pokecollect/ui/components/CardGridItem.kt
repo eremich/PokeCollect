@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.yeromich.pokecollect.domain.model.Card
@@ -17,6 +18,8 @@ fun CardGridItem(card: Card, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.72f)
+            .clip(CardShape)
+            .gridShimmer(enabled = isFoilVariant(card.variant))
             .clickable(onClick = onClick),
         contentScale = ContentScale.Crop
     )
