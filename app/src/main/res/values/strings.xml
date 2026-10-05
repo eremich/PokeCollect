@@ -58,4 +58,6 @@
     <string name="sets_series_other">Promos and specials</string>
     <string name="sets_error">Couldn\'t load sets. Check your connection and try again.</string>
     <string name="scanner_error_generic">Couldn\'t read this card. Try again in better light.</string>
+    <string name="collection_value_label">value</string>
+    <string name="collection_value_coverage">Prices for %1$d of %2$d cards</string>
 </resources>

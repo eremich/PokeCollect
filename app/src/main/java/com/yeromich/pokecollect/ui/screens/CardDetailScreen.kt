@@ -48,11 +48,10 @@ import com.yeromich.pokecollect.R
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.domain.model.Card
+import com.yeromich.pokecollect.domain.model.formatEur
 import com.yeromich.pokecollect.ui.components.HoloCard
 import com.yeromich.pokecollect.ui.components.isFoilVariant
 import com.yeromich.pokecollect.ui.theme.Ink
-import java.text.NumberFormat
-import java.util.Locale
 
 private const val COLOR_FADE_MS = 400
 private const val GLOW_ALPHA = 0.38f
@@ -72,8 +71,6 @@ private val typeColors = mapOf(
     "Farblos" to Color(0xFFD6D2CA)
 )
 
-// Cardmarket is a euro market, so prices read the way German sellers write them: "7,30 €".
-private val euro: NumberFormat = NumberFormat.getCurrencyInstance(Locale.GERMANY)
 
 @Composable
 fun CardDetailScreen(
@@ -284,7 +281,7 @@ private fun PriceBlock(cm: TcgdexCardmarketDto, foil: Boolean, modifier: Modifie
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = trend?.let(euro::format) ?: "—",
+                text = trend?.let(::formatEur) ?: "—",
                 style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -313,6 +310,6 @@ private fun Double?.orNone(): Double? = this?.takeIf { it > 0.0 }
 private fun PriceStat(label: String, price: Double) {
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(euro.format(price), style = MaterialTheme.typography.titleMedium)
+        Text(formatEur(price), style = MaterialTheme.typography.titleMedium)
     }
 }
