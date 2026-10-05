@@ -1,5 +1,6 @@
 package com.yeromich.pokecollect.data.repository
 
+import com.yeromich.pokecollect.data.local.CollectionValue
 import com.yeromich.pokecollect.domain.model.Card
 import kotlinx.coroutines.flow.Flow
 
@@ -8,6 +9,10 @@ interface CollectionRepository {
     fun isInCollection(id: String): Flow<Boolean>
     fun getQuantity(id: String): Flow<Int>
     fun getCount(): Flow<Int>
+    fun getValue(): Flow<CollectionValue>
+    suspend fun savePrice(cardId: String, variant: String, priceEur: Double?)
+    /** Re-prices entries whose price is missing or older than a day. Failures are skipped quietly. */
+    suspend fun refreshStalePrices()
     suspend fun addOrIncrement(card: Card)
     suspend fun addOrIncrementVariant(card: Card, variant: String)
     suspend fun removeOne(cardId: String, variant: String)

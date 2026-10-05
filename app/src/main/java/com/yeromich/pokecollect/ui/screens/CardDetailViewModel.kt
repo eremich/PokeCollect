@@ -9,12 +9,14 @@ import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.data.repository.CollectionRepository
 import com.yeromich.pokecollect.domain.model.Card
+import com.yeromich.pokecollect.domain.model.trendEur
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -76,6 +78,7 @@ class CardDetailViewModel @Inject constructor(
             }
         }
         viewModelScope.launch { refileLegacyVariants() }
+        viewModelScope.launch { syncOwnedPrices() }
         viewModelScope.launch {
             collectionRepository.getVariantCounts(card.id)
                 .first { it.isNotEmpty() }
@@ -123,6 +126,20 @@ class CardDetailViewModel @Inject constructor(
 
     fun selectVariant(variant: String) {
         selectedVariant.value = variant
+    }
+
+    // Keep the stored price of every owned variant in step with what this screen shows,
+    // including variants added right here.
+    private suspend fun syncOwnedPrices() {
+        combine(_cardDetails.filterNotNull(), collectionRepository.getVariantCounts(card.id)) { details, counts ->
+            details to counts.keys
+        }
+            .distinctUntilChanged()
+            .collect { (details, variants) ->
+                variants.forEach {
+                    collectionRepository.savePrice(card.id, it, details.pricing?.cardmarket.trendEur(it))
+                }
+            }
     }
 
     fun addOrIncrement() {
