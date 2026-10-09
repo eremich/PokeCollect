@@ -9,16 +9,16 @@ import androidx.compose.ui.unit.dp
 
 // Dark only: cards and foil read best against a near-black backdrop.
 private val HoloColorScheme = darkColorScheme(
-    primary = Holo,
-    onPrimary = HoloDeep,
-    primaryContainer = HoloContainer,
-    onPrimaryContainer = OnHoloContainer,
-    secondary = Foil,
-    onSecondary = FoilDeep,
-    secondaryContainer = InkHighest,
-    onSecondaryContainer = Paper,
-    tertiary = Foil,
-    onTertiary = FoilDeep,
+    primary = Coral,
+    onPrimary = CoralDeep,
+    primaryContainer = CoralContainer,
+    onPrimaryContainer = OnCoralContainer,
+    secondary = Teal,
+    onSecondary = TealDeep,
+    secondaryContainer = TealContainer,
+    onSecondaryContainer = Teal,
+    tertiary = Teal,
+    onTertiary = TealDeep,
     background = Ink,
     onBackground = Paper,
     surface = Ink,
@@ -40,7 +40,7 @@ private val HoloColorScheme = darkColorScheme(
     onErrorContainer = Paper,
     inverseSurface = Paper,
     inverseOnSurface = Ink,
-    inversePrimary = HoloContainer,
+    inversePrimary = CoralContainer,
     scrim = Ink
 )
 

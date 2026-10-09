@@ -2,25 +2,28 @@ package com.yeromich.pokecollect.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Neutrals are tinted slightly violet so the dark UI feels like foil backing, not flat grey.
-val Ink = Color(0xFF0F0F14)
-val InkRaised = Color(0xFF17161E)
-val InkHigh = Color(0xFF211F2B)
-val InkHighest = Color(0xFF2C2938)
-val Hairline = Color(0xFF3A3648)
+// Neutral graphite, so the only colour on screen comes from the cards and two deliberate accents.
+val Ink = Color(0xFF111113)
+val InkRaised = Color(0xFF19191C)
+val InkHigh = Color(0xFF232327)
+val InkHighest = Color(0xFF2E2E33)
+val Hairline = Color(0xFF3C3C42)
 
-val Paper = Color(0xFFF1EFEA)
-val PaperMuted = Color(0xFF9A98A6)
-val PaperFaint = Color(0xFF6B6878)
+val Paper = Color(0xFFF2F0EC)
+val PaperMuted = Color(0xFF9C9AA0)
 
-val Holo = Color(0xFFC6A8FF)
-val HoloDeep = Color(0xFF26173F)
-val HoloContainer = Color(0xFF3A2A5C)
-val OnHoloContainer = Color(0xFFE9DDFF)
+// Coral leads: value, primary actions and the current selection.
+val Coral = Color(0xFFFF7A59)
+val CoralDeep = Color(0xFF2B0D04)
+val CoralContainer = Color(0xFF4A2016)
+val OnCoralContainer = Color(0xFFFFD9CE)
 
-val Foil = Color(0xFF7FE3E0)
-val FoilDeep = Color(0xFF0B3533)
+// Teal is the quiet second voice for supporting accents.
+val Teal = Color(0xFF5FD6C8)
+val TealDeep = Color(0xFF04302B)
+val TealContainer = Color(0xFF123634)
 
-val Danger = Color(0xFFFF8A80)
-val DangerDeep = Color(0xFF4A1210)
-val DangerContainer = Color(0xFF5C1E1A)
+// Errors lean pink-red so they never read as the coral accent.
+val Danger = Color(0xFFFF5C7A)
+val DangerDeep = Color(0xFF3F0712)
+val DangerContainer = Color(0xFF5A1525)
