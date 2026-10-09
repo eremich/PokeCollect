@@ -21,10 +21,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
@@ -40,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -148,7 +145,7 @@ private fun CardDetailContent(
             ),
             modifier = Modifier.padding(top = 4.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_back))
+            Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = stringResource(R.string.detail_back))
         }
 
         HoloCard(
@@ -178,7 +175,7 @@ private fun CardDetailContent(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = 8.dp)
             ) {
-                Icon(Icons.Filled.Star, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+                Icon(painterResource(R.drawable.ic_star_fill), contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
                 Text(rarity, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -217,7 +214,7 @@ private fun CardDetailContent(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     modifier = Modifier.size(52.dp)
                 ) {
-                    Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.detail_remove_one))
+                    Icon(painterResource(R.drawable.ic_minus), contentDescription = stringResource(R.string.detail_remove_one))
                 }
             }
             Button(

@@ -2,7 +2,7 @@ package com.yeromich.pokecollect.ui.screens
 
 import com.yeromich.pokecollect.ui.theme.Paper
 import com.yeromich.pokecollect.ui.theme.Ink
-import com.yeromich.pokecollect.ui.theme.Holo
+import com.yeromich.pokecollect.ui.theme.Coral
 import com.yeromich.pokecollect.ui.components.CardShape
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -55,8 +55,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -90,6 +88,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -239,7 +238,7 @@ fun ScannerScreen(
                             blendMode = BlendMode.Clear
                         )
 
-                        drawViewfinderCorners(fl, ft, fw, fh, cr, Holo, 3.dp.toPx())
+                        drawViewfinderCorners(fl, ft, fw, fh, cr, Coral, 3.dp.toPx())
                     }
 
                     Text(
@@ -548,7 +547,7 @@ private fun CloseButton(onClose: () -> Unit, modifier: Modifier) {
         ),
         modifier = modifier.padding(12.dp)
     ) {
-        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.scanner_close))
+        Icon(painterResource(R.drawable.ic_x), contentDescription = stringResource(R.string.scanner_close))
     }
 }
 

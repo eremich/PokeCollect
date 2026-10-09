@@ -1,5 +1,17 @@
 package com.yeromich.pokecollect.ui
 
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -30,10 +42,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -46,7 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -73,10 +81,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.URLEncoder
 
-sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
-    object Collection : Screen("collection", R.string.nav_collection, Icons.Filled.Inventory2)
-    object Scanner : Screen("scanner", R.string.nav_scanner, Icons.Filled.CameraAlt)
-    object Sets : Screen("sets", R.string.nav_sets, Icons.Filled.Style)
+// Phosphor icons: outline when idle, filled when the tab is current.
+sealed class Screen(val route: String, val labelRes: Int, @DrawableRes val icon: Int, @DrawableRes val iconSelected: Int) {
+    object Collection : Screen("collection", R.string.nav_collection, R.drawable.ic_cards, R.drawable.ic_cards_fill)
+    object Scanner : Screen("scanner", R.string.nav_scanner, R.drawable.ic_scan, R.drawable.ic_scan_fill)
+    object Sets : Screen("sets", R.string.nav_sets, R.drawable.ic_stack, R.drawable.ic_stack_fill)
 }
 
 private val bottomBarScreens = listOf(Screen.Collection, Screen.Scanner, Screen.Sets)
@@ -88,11 +97,22 @@ private const val PUSH_ENTER_MS = 260
 private const val PUSH_EXIT_MS = 200
 private const val BAR_MS = 220
 
-private val GLASS_BLUR = 24.dp
-private const val GLASS_TINT_ALPHA = 0.55f
+private val GLASS_BLUR = 32.dp
+private const val GLASS_TINT_ALPHA = 0.85f
 private const val GLASS_FALLBACK_ALPHA = 0.92f
 private const val GLASS_NOISE = 0.05f
-private const val GLASS_EDGE_ALPHA = 0.12f
+private const val GLASS_EDGE_ALPHA = 0.16f
+private const val TAB_IDLE_ALPHA = 0.7f
+private const val TAB_PILL_ALPHA = 0.18f
+private const val TAB_PRESSED_SCALE = 0.88f
+private const val TAB_PRESS_MS = 120
+private const val PILL_DAMPING = 0.75f
+private val TAB_BAR_PADDING = 6.dp
+private val TAB_GAP = 4.dp
+private val TAB_ICON_SIZE = 22.dp
+private val TAB_ICON_PADDING_H = 14.dp
+private val TAB_ICON_PADDING_V = 3.dp
+private val TAB_ICON_LABEL_GAP = 2.dp
 
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
     initialState.destination.route in bottomBarRoutes && targetState.destination.route in bottomBarRoutes
@@ -215,6 +235,14 @@ fun PokeCollectApp() {
 @Composable
 private fun FloatingTabBar(hazeState: HazeState, selectedRoute: String?, onSelect: (Screen) -> Unit) {
     val glass = MaterialTheme.colorScheme.surfaceContainerHigh
+    val selectedIndex = bottomBarScreens.indexOfFirst { it.route == selectedRoute }
+    // One shared pill glides between tabs instead of each tab fading its own in and out.
+    val pillPosition by animateFloatAsState(
+        targetValue = selectedIndex.coerceAtLeast(0).toFloat(),
+        animationSpec = spring(dampingRatio = PILL_DAMPING, stiffness = Spring.StiffnessMediumLow),
+        label = "tabPill"
+    )
+
     Box(
         modifier = Modifier
             .navigationBarsPadding()
@@ -231,17 +259,36 @@ private fun FloatingTabBar(hazeState: HazeState, selectedRoute: String?, onSelec
             }
             .border(0.5.dp, Color.White.copy(alpha = GLASS_EDGE_ALPHA), CircleShape)
     ) {
-        Row(
-            modifier = Modifier.padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            bottomBarScreens.forEach { screen ->
-                TabItem(
-                    screen = screen,
-                    selected = screen.route == selectedRoute,
-                    onClick = { onSelect(screen) },
-                    modifier = Modifier.weight(1f)
-                )
+        BoxWithConstraints(modifier = Modifier.padding(TAB_BAR_PADDING)) {
+            val slot = (maxWidth - TAB_GAP * (bottomBarScreens.size - 1)) / bottomBarScreens.size
+            if (selectedIndex >= 0) {
+                // Mirrors a tab's layout with an invisible label, so the pill sits exactly behind the icon.
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(TAB_ICON_LABEL_GAP, Alignment.CenterVertically),
+                    modifier = Modifier
+                        .offset { IntOffset(((slot + TAB_GAP) * pillPosition).roundToPx(), 0) }
+                        .width(slot)
+                        .fillMaxHeight()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = TAB_PILL_ALPHA), CircleShape)
+                            .padding(TAB_ICON_PADDING_H, TAB_ICON_PADDING_V)
+                            .size(TAB_ICON_SIZE)
+                    )
+                    Text(" ", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(TAB_GAP)) {
+                bottomBarScreens.forEach { screen ->
+                    TabItem(
+                        screen = screen,
+                        selected = screen.route == selectedRoute,
+                        onClick = { onSelect(screen) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -250,19 +297,41 @@ private fun FloatingTabBar(hazeState: HazeState, selectedRoute: String?, onSelec
 @Composable
 private fun TabItem(screen: Screen, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val background by animateColorAsState(if (selected) colors.primaryContainer else Color.Transparent, tween(BAR_MS), label = "tabBg")
-    val content by animateColorAsState(if (selected) colors.primary else colors.onSurfaceVariant, tween(BAR_MS), label = "tabFg")
-    val label = stringResource(screen.labelRes)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    // A small squeeze on the icon is the press feedback; a full-width ripple read as a hover block.
+    val scale by animateFloatAsState(if (pressed) TAB_PRESSED_SCALE else 1f, tween(TAB_PRESS_MS), label = "tabPress")
+    val icon by animateColorAsState(
+        if (selected) colors.primary else colors.onSurface.copy(alpha = TAB_IDLE_ALPHA), tween(BAR_MS), label = "tabIcon"
+    )
+    val text by animateColorAsState(
+        if (selected) colors.onSurface else colors.onSurface.copy(alpha = TAB_IDLE_ALPHA), tween(BAR_MS), label = "tabText"
+    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(TAB_ICON_LABEL_GAP, Alignment.CenterVertically),
         modifier = modifier
             .fillMaxHeight()
-            .clip(CircleShape)
-            .background(background)
-            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+            .selectable(
+                selected = selected,
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Tab,
+                onClick = onClick
+            )
     ) {
-        Icon(screen.icon, contentDescription = null, tint = content, modifier = Modifier.size(22.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = content)
+        Icon(
+            painterResource(if (selected) screen.iconSelected else screen.icon),
+            contentDescription = null,
+            tint = icon,
+            modifier = Modifier
+                .padding(TAB_ICON_PADDING_H, TAB_ICON_PADDING_V)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .size(TAB_ICON_SIZE)
+        )
+        Text(stringResource(screen.labelRes), style = MaterialTheme.typography.labelSmall, color = text)
     }
 }
