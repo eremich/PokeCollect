@@ -44,6 +44,7 @@ import com.yeromich.pokecollect.data.local.CollectionValue
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.domain.model.formatEur
 import com.yeromich.pokecollect.ui.components.CardGridItem
+import com.yeromich.pokecollect.ui.components.FolderStrip
 import com.yeromich.pokecollect.ui.components.StatusBarScrim
 
 private const val VALUE_COUNT_MS = 600
@@ -55,8 +56,11 @@ fun CollectionScreen(
     viewModel: CollectionViewModel = hiltViewModel()
 ) {
     val cards by viewModel.cards.collectAsStateWithLifecycle()
-    val count by viewModel.count.collectAsStateWithLifecycle()
     val value by viewModel.value.collectAsStateWithLifecycle()
+    val allValue by viewModel.allValue.collectAsStateWithLifecycle()
+    val allPreviewImages by viewModel.allPreviewImages.collectAsStateWithLifecycle()
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
+    val selectedFolderId by viewModel.selectedFolderId.collectAsStateWithLifecycle()
     val sort by viewModel.sort.collectAsStateWithLifecycle()
     val setCount = remember(cards) { cards.distinctBy { it.setName }.size }
 
@@ -70,12 +74,30 @@ fun CollectionScreen(
         ) {
             item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
                 CollectionHeader(
-                    cardCount = count,
+                    cardCount = value?.entries ?: 0,
                     setCount = setCount,
-                    value = value,
-                    sort = sort,
-                    onSortChange = viewModel::setSort
+                    value = value
                 )
+            }
+            item(key = "folders", span = { GridItemSpan(maxLineSpan) }) {
+                FolderStrip(
+                    folders = folders,
+                    selectedFolderId = selectedFolderId,
+                    allCount = allValue?.entries ?: 0,
+                    allTotalEur = allValue?.totalEur ?: 0.0,
+                    allPreviewImages = allPreviewImages,
+                    onSelect = viewModel::selectFolder,
+                    onCreate = viewModel::createFolder,
+                    onRename = viewModel::renameFolder,
+                    onDelete = viewModel::deleteFolder,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+            // Pick the collection first, then how to order it.
+            if (cards.size > 1) {
+                item(key = "sort", span = { GridItemSpan(maxLineSpan) }) {
+                    SortPills(sort = sort, onSortChange = viewModel::setSort, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+                }
             }
             if (cards.isEmpty()) {
                 item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
@@ -84,7 +106,9 @@ fun CollectionScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = stringResource(R.string.collection_empty_hint),
+                            text = stringResource(
+                                if (selectedFolderId == null) R.string.collection_empty_hint else R.string.folder_empty_hint
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -110,9 +134,7 @@ fun CollectionScreen(
 private fun CollectionHeader(
     cardCount: Int,
     setCount: Int,
-    value: CollectionValue?,
-    sort: CollectionSort,
-    onSortChange: (CollectionSort) -> Unit
+    value: CollectionValue?
 ) {
     Column(
         modifier = Modifier
@@ -143,9 +165,6 @@ private fun CollectionHeader(
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(top = 6.dp)
             )
-        }
-        if (cardCount > 1) {
-            SortPills(sort = sort, onSortChange = onSortChange, modifier = Modifier.padding(top = 16.dp))
         }
     }
 }
