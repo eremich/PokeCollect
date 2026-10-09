@@ -10,7 +10,8 @@ fun CollectedCardEntity.toDomain() = Card(
     rarity = rarity,
     imageSmall = imageSmall,
     imageLarge = imageLarge,
-    variant = variant
+    variant = variant,
+    priceEur = priceEur
 )
 
 fun Card.toEntity(addedAt: Long = System.currentTimeMillis()) = CollectedCardEntity(

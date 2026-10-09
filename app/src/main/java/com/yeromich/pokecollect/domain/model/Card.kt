@@ -11,5 +11,7 @@ data class Card(
     val rarity: String?,
     val imageSmall: String,
     val imageLarge: String,
-    val variant: String = "Normal"
+    val variant: String = "Normal",
+    /** Last known Cardmarket trend in euros; only known for cards in the collection. */
+    val priceEur: Double? = null
 )

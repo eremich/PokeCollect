@@ -43,14 +43,10 @@
     <string name="scanner_card_name_label">Kartenname</string>
     <string name="scanner_search">Suchen</string>
     <string name="collection_title">Sammlung</string>
-    <plurals name="collection_stat_cards">
-        <item quantity="one">Karte</item>
-        <item quantity="other">Karten</item>
-    </plurals>
-    <plurals name="collection_stat_sets">
-        <item quantity="one">Set</item>
-        <item quantity="other">Sets</item>
-    </plurals>
+    <string name="collection_stat_card">Karte</string>
+    <string name="collection_stat_cards">Karten</string>
+    <string name="collection_stat_set">Set</string>
+    <string name="collection_stat_sets">Sets</string>
     <string name="detail_back">Zurück</string>
     <string name="detail_price_trend">Cardmarket-Trend</string>
     <string name="detail_price_avg30">Ø 30 Tage</string>
@@ -60,4 +56,6 @@
     <string name="scanner_error_generic">Karte konnte nicht gelesen werden. Versuche es bei besserem Licht erneut.</string>
     <string name="collection_value_label">Wert</string>
     <string name="collection_value_coverage">Preise für %1$d von %2$d Karten</string>
+    <string name="collection_sort_newest">Neueste</string>
+    <string name="collection_sort_valuable">Wertvollste</string>
 </resources>

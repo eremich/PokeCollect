@@ -43,14 +43,10 @@
     <string name="scanner_card_name_label">Card name</string>
     <string name="scanner_search">Search</string>
     <string name="collection_title">Collection</string>
-    <plurals name="collection_stat_cards">
-        <item quantity="one">card</item>
-        <item quantity="other">cards</item>
-    </plurals>
-    <plurals name="collection_stat_sets">
-        <item quantity="one">set</item>
-        <item quantity="other">sets</item>
-    </plurals>
+    <string name="collection_stat_card">card</string>
+    <string name="collection_stat_cards">cards</string>
+    <string name="collection_stat_set">set</string>
+    <string name="collection_stat_sets">sets</string>
     <string name="detail_back">Back</string>
     <string name="detail_price_trend">Cardmarket trend</string>
     <string name="detail_price_avg30">Ø 30 days</string>
@@ -60,4 +56,6 @@
     <string name="scanner_error_generic">Couldn\'t read this card. Try again in better light.</string>
     <string name="collection_value_label">value</string>
     <string name="collection_value_coverage">Prices for %1$d of %2$d cards</string>
+    <string name="collection_sort_newest">Newest</string>
+    <string name="collection_sort_valuable">Most valuable</string>
 </resources>

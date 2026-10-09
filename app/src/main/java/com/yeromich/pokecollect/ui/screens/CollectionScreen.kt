@@ -1,5 +1,13 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -25,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -50,6 +57,7 @@ fun CollectionScreen(
     val cards by viewModel.cards.collectAsStateWithLifecycle()
     val count by viewModel.count.collectAsStateWithLifecycle()
     val value by viewModel.value.collectAsStateWithLifecycle()
+    val sort by viewModel.sort.collectAsStateWithLifecycle()
     val setCount = remember(cards) { cards.distinctBy { it.setName }.size }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -61,7 +69,13 @@ fun CollectionScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
-                CollectionHeader(cardCount = count, setCount = setCount, value = value)
+                CollectionHeader(
+                    cardCount = count,
+                    setCount = setCount,
+                    value = value,
+                    sort = sort,
+                    onSortChange = viewModel::setSort
+                )
             }
             if (cards.isEmpty()) {
                 item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
@@ -79,7 +93,12 @@ fun CollectionScreen(
                 }
             } else {
                 items(cards, key = { "${it.id}_${it.variant}" }) { card ->
-                    CardGridItem(card = card, onClick = { onCardClick(card) })
+                    CardGridItem(
+                    card = card,
+                    onClick = { onCardClick(card) },
+                    priceLabel = card.priceEur?.takeIf { sort == CollectionSort.MostValuable }?.let(::formatEur),
+                    modifier = Modifier.animateItem()
+                )
                 }
             }
         }
@@ -88,7 +107,13 @@ fun CollectionScreen(
 }
 
 @Composable
-private fun CollectionHeader(cardCount: Int, setCount: Int, value: CollectionValue?) {
+private fun CollectionHeader(
+    cardCount: Int,
+    setCount: Int,
+    value: CollectionValue?,
+    sort: CollectionSort,
+    onSortChange: (CollectionSort) -> Unit
+) {
     Column(
         modifier = Modifier
             .statusBarsPadding()
@@ -107,8 +132,8 @@ private fun CollectionHeader(cardCount: Int, setCount: Int, value: CollectionVal
             if (value != null && value.pricedEntries > 0) {
                 ValueStat(totalEur = value.totalEur)
             }
-            Stat(value = cardCount.toString(), label = pluralStringResource(R.plurals.collection_stat_cards, cardCount))
-            Stat(value = setCount.toString(), label = pluralStringResource(R.plurals.collection_stat_sets, setCount))
+            Stat(value = cardCount.toString(), label = countLabel(cardCount, R.string.collection_stat_card, R.string.collection_stat_cards))
+            Stat(value = setCount.toString(), label = countLabel(setCount, R.string.collection_stat_set, R.string.collection_stat_sets))
         }
         // Say so when the total leaves cards out, so it never reads as the full worth.
         if (value != null && value.pricedEntries in 1 until value.entries) {
@@ -119,7 +144,45 @@ private fun CollectionHeader(cardCount: Int, setCount: Int, value: CollectionVal
                 modifier = Modifier.padding(top = 6.dp)
             )
         }
+        if (cardCount > 1) {
+            SortPills(sort = sort, onSortChange = onSortChange, modifier = Modifier.padding(top = 16.dp))
+        }
     }
+}
+
+// English and German only ever use the singular for exactly one. Android plurals would follow the
+// phone's language instead, so on a Ukrainian phone "31" came out as "31 card".
+@Composable
+private fun countLabel(count: Int, @StringRes one: Int, @StringRes other: Int): String =
+    stringResource(if (count == 1) one else other)
+
+@Composable
+private fun SortPills(sort: CollectionSort, onSortChange: (CollectionSort) -> Unit, modifier: Modifier = Modifier) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier.selectableGroup()) {
+        SortPill(stringResource(R.string.collection_sort_newest), sort == CollectionSort.Newest) {
+            onSortChange(CollectionSort.Newest)
+        }
+        SortPill(stringResource(R.string.collection_sort_valuable), sort == CollectionSort.MostValuable) {
+            onSortChange(CollectionSort.MostValuable)
+        }
+    }
+}
+
+@Composable
+private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val background by animateColorAsState(if (selected) colors.primaryContainer else colors.surfaceContainerHigh, label = "pillBg")
+    val content by animateColorAsState(if (selected) colors.primary else colors.onSurfaceVariant, label = "pillFg")
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        color = content,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(background)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    )
 }
 
 @Composable
