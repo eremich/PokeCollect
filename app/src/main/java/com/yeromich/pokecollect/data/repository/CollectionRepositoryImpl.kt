@@ -79,7 +79,7 @@ class CollectionRepositoryImpl @Inject constructor(
             if (existing.quantity > 1) {
                 dao.decrementByVariant(cardId, variant)
             } else {
-                dao.deleteByIdAndVariant(cardId, variant)
+                dao.deleteEntry(cardId, variant)
             }
         }
     }
@@ -92,5 +92,5 @@ class CollectionRepositoryImpl @Inject constructor(
                 .mapValues { (_, list) -> list.sumOf { it.quantity } }
         }
 
-    override suspend fun remove(id: String) = dao.deleteById(id)
+    override suspend fun remove(id: String) = dao.deleteCard(id)
 }

@@ -5,11 +5,33 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [CollectedCardEntity::class], version = 3, exportSchema = false)
+@Database(
+    entities = [CollectedCardEntity::class, FolderEntity::class, FolderCardEntity::class],
+    version = 4,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun collectedCardDao(): CollectedCardDao
+    abstract fun folderDao(): FolderDao
 
     companion object {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `folders` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `folder_cards` (`folderId` INTEGER NOT NULL, `cardId` TEXT NOT NULL, " +
+                        "`variant` TEXT NOT NULL, PRIMARY KEY(`folderId`, `cardId`, `variant`), " +
+                        "FOREIGN KEY(`folderId`) REFERENCES `folders`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_folder_cards_cardId_variant` ON `folder_cards` (`cardId`, `variant`)"
+                )
+            }
+        }
+
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `collected_cards` ADD COLUMN `priceEur` REAL")

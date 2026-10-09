@@ -45,7 +45,8 @@ interface CollectedCardDao {
     suspend fun moveVariant(cardId: String, from: String, to: String) {
         val source = findByIdAndVariant(cardId, from) ?: return
         val target = findByIdAndVariant(cardId, to)
-        deleteByIdAndVariant(cardId, from)
+        copyMemberships(cardId, from, to)
+        deleteEntry(cardId, from)
         upsert(target?.copy(quantity = target.quantity + source.quantity) ?: source.copy(variant = to))
     }
 
@@ -64,6 +65,31 @@ interface CollectedCardDao {
         """
     )
     fun getValue(): Flow<CollectionValue>
+
+    @Query(
+        "INSERT OR IGNORE INTO folder_cards (folderId, cardId, variant) " +
+            "SELECT folderId, cardId, :to FROM folder_cards WHERE cardId = :cardId AND variant = :from"
+    )
+    suspend fun copyMemberships(cardId: String, from: String, to: String)
+
+    @Query("DELETE FROM folder_cards WHERE cardId = :cardId AND variant = :variant")
+    suspend fun deleteMemberships(cardId: String, variant: String)
+
+    @Query("DELETE FROM folder_cards WHERE cardId = :cardId")
+    suspend fun deleteAllMemberships(cardId: String)
+
+    /** Removes a card variant from the collection and from every folder it was filed in. */
+    @Transaction
+    suspend fun deleteEntry(cardId: String, variant: String) {
+        deleteByIdAndVariant(cardId, variant)
+        deleteMemberships(cardId, variant)
+    }
+
+    @Transaction
+    suspend fun deleteCard(cardId: String) {
+        deleteById(cardId)
+        deleteAllMemberships(cardId)
+    }
 
     @Query("SELECT COUNT(*) FROM collected_cards")
     fun getCount(): Flow<Int>
