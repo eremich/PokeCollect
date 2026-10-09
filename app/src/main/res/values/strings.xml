@@ -58,4 +58,25 @@
     <string name="collection_value_coverage">Prices for %1$d of %2$d cards</string>
     <string name="collection_sort_newest">Newest</string>
     <string name="collection_sort_valuable">Most valuable</string>
+    <string name="collection_all_cards">All cards</string>
+    <string name="folder_new">New</string>
+    <string name="folder_new_title">New collection</string>
+    <string name="folder_rename_title">Rename collection</string>
+    <string name="folder_name_placeholder">EX and V</string>
+    <string name="folder_create">Create</string>
+    <string name="folder_save">Save</string>
+    <string name="folder_cancel">Cancel</string>
+    <string name="folder_rename">Rename</string>
+    <string name="folder_delete">Delete</string>
+    <string name="folder_delete_title">Delete “%1$s”?</string>
+    <string name="folder_delete_body">The cards stay in your collection.</string>
+    <string name="folder_meta">%1$d · %2$s</string>
+    <string name="folder_empty_hint">Nothing here yet. Open a card, tap Add, and pick this collection.</string>
+    <string name="detail_add_to_title">Add %1$s to…</string>
+    <string name="detail_folders_title">%1$s is in…</string>
+    <string name="detail_add_confirm">Add</string>
+    <string name="folder_always">always</string>
+    <string name="detail_in_folders">In: %1$s</string>
+    <string name="detail_in_no_folder">Not in a collection yet</string>
+    <string name="detail_edit_folders">Edit</string>
 </resources>

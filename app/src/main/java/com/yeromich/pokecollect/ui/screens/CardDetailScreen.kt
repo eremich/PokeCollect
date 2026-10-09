@@ -1,5 +1,12 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.clickable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -46,6 +53,7 @@ import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.domain.model.formatEur
+import com.yeromich.pokecollect.ui.components.FolderPickerSheet
 import com.yeromich.pokecollect.ui.components.HoloCard
 import com.yeromich.pokecollect.ui.components.isFoilVariant
 import com.yeromich.pokecollect.ui.theme.Ink
@@ -79,6 +87,9 @@ fun CardDetailScreen(
     val availableVariants by viewModel.availableVariants.collectAsStateWithLifecycle()
     val selectedVariant by viewModel.selectedVariant.collectAsStateWithLifecycle()
     val collectionCounts by viewModel.collectionCounts.collectAsStateWithLifecycle()
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
+    val memberFolderIds by viewModel.memberFolderIds.collectAsStateWithLifecycle()
+    var folderSheet by remember { mutableStateOf<FolderSheetMode?>(null) }
 
     val typeColor = cardDetails?.types?.firstNotNullOfOrNull { typeColors[it] } ?: MaterialTheme.colorScheme.primary
     val accent by animateColorAsState(typeColor, tween(COLOR_FADE_MS), label = "typeAccent")
@@ -104,11 +115,36 @@ fun CardDetailScreen(
             collectionCounts = collectionCounts,
             onNavigateBack = onNavigateBack,
             onVariantSelected = viewModel::selectVariant,
-            onAddOrIncrement = viewModel::addOrIncrement,
+            memberFolderNames = folders.filter { it.id in memberFolderIds }.map { it.name },
+            showFolders = folders.isNotEmpty(),
+            onEditFolders = { folderSheet = FolderSheetMode.Edit },
+            // Without any collections there is nothing to choose, so add straight away.
+            onAddOrIncrement = { if (folders.isEmpty()) viewModel.addOrIncrement() else folderSheet = FolderSheetMode.Add },
             onRemoveOne = viewModel::removeOne
         )
     }
+
+    folderSheet?.let { mode ->
+        FolderPickerSheet(
+            title = stringResource(
+                if (mode == FolderSheetMode.Add) R.string.detail_add_to_title else R.string.detail_folders_title,
+                selectedVariant
+            ),
+            confirmLabel = stringResource(if (mode == FolderSheetMode.Add) R.string.detail_add_confirm else R.string.folder_save),
+            folders = folders,
+            initiallySelected = memberFolderIds,
+            accent = accent,
+            onCreateFolder = viewModel::createFolder,
+            onConfirm = { ids ->
+                if (mode == FolderSheetMode.Add) viewModel.addToCollection(ids) else viewModel.saveFolders(ids)
+                folderSheet = null
+            },
+            onDismiss = { folderSheet = null }
+        )
+    }
 }
+
+private enum class FolderSheetMode { Add, Edit }
 
 @Composable
 private fun CardDetailContent(
@@ -121,6 +157,9 @@ private fun CardDetailContent(
     collectionCounts: Map<String, Int>,
     onNavigateBack: () -> Unit,
     onVariantSelected: (String) -> Unit,
+    memberFolderNames: List<String>,
+    showFolders: Boolean,
+    onEditFolders: () -> Unit,
     onAddOrIncrement: () -> Unit,
     onRemoveOne: () -> Unit
 ) {
@@ -180,6 +219,10 @@ private fun CardDetailContent(
             }
         }
 
+        if (showFolders && selectedCount > 0) {
+            FoldersLine(names = memberFolderNames, accent = accent, onEdit = onEditFolders)
+        }
+
         if (availableVariants.isNotEmpty()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -230,6 +273,32 @@ private fun CardDetailContent(
                 )
             }
         }
+    }
+}
+
+/** "In: EX und V, Favoriten · Edit" — where the selected variant is filed. */
+@Composable
+private fun FoldersLine(names: List<String>, accent: Color, onEdit: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .padding(top = 6.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onEdit)
+            .padding(vertical = 4.dp)
+    ) {
+        Icon(painterResource(R.drawable.ic_cards), contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+        Text(
+            text = if (names.isEmpty()) stringResource(R.string.detail_in_no_folder)
+            else stringResource(R.string.detail_in_folders, names.joinToString(", ")),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        Text(stringResource(R.string.detail_edit_folders), style = MaterialTheme.typography.labelMedium, color = accent)
     }
 }
 

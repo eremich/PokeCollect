@@ -58,4 +58,25 @@
     <string name="collection_value_coverage">Preise für %1$d von %2$d Karten</string>
     <string name="collection_sort_newest">Neueste</string>
     <string name="collection_sort_valuable">Wertvollste</string>
+    <string name="collection_all_cards">Alle Karten</string>
+    <string name="folder_new">Neu</string>
+    <string name="folder_new_title">Neue Sammlung</string>
+    <string name="folder_rename_title">Sammlung umbenennen</string>
+    <string name="folder_name_placeholder">EX und V</string>
+    <string name="folder_create">Erstellen</string>
+    <string name="folder_save">Speichern</string>
+    <string name="folder_cancel">Abbrechen</string>
+    <string name="folder_rename">Umbenennen</string>
+    <string name="folder_delete">Löschen</string>
+    <string name="folder_delete_title">„%1$s“ löschen?</string>
+    <string name="folder_delete_body">Die Karten bleiben in deiner Sammlung.</string>
+    <string name="folder_meta">%1$d · %2$s</string>
+    <string name="folder_empty_hint">Noch leer. Öffne eine Karte, tippe auf Hinzufügen und wähle diese Sammlung.</string>
+    <string name="detail_add_to_title">%1$s hinzufügen zu…</string>
+    <string name="detail_folders_title">%1$s ist in…</string>
+    <string name="detail_add_confirm">Hinzufügen</string>
+    <string name="folder_always">immer</string>
+    <string name="detail_in_folders">In: %1$s</string>
+    <string name="detail_in_no_folder">Noch in keiner Sammlung</string>
+    <string name="detail_edit_folders">Bearbeiten</string>
 </resources>

@@ -8,9 +8,12 @@ import com.yeromich.pokecollect.data.remote.TcgdexApi
 import com.yeromich.pokecollect.data.remote.TcgdexCardDto
 import com.yeromich.pokecollect.data.remote.TcgdexCardmarketDto
 import com.yeromich.pokecollect.data.repository.CollectionRepository
+import com.yeromich.pokecollect.data.repository.FolderRepository
 import com.yeromich.pokecollect.domain.model.Card
+import com.yeromich.pokecollect.domain.model.Folder
 import com.yeromich.pokecollect.domain.model.trendEur
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -27,10 +31,12 @@ import java.net.URLDecoder
 import javax.inject.Inject
 import javax.inject.Named
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class CardDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val collectionRepository: CollectionRepository,
+    private val folderRepository: FolderRepository,
     @param:Named("tcgdex") private val tcgdexApi: TcgdexApi,
     private val detailsCache: CardDetailsCache
 ) : ViewModel() {
@@ -141,6 +147,29 @@ class CardDetailViewModel @Inject constructor(
                 }
             }
     }
+
+    val folders: StateFlow<List<Folder>> = folderRepository.getFolders()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Collections the currently selected variant is filed in. */
+    val memberFolderIds: StateFlow<Set<Long>> = selectedVariant
+        .flatMapLatest { variant -> folderRepository.getFolderIds(card.id, variant) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    /** Adds one copy of the selected variant and files it in exactly [folderIds]. */
+    fun addToCollection(folderIds: Set<Long>) {
+        viewModelScope.launch {
+            val variant = selectedVariant.value
+            collectionRepository.addOrIncrementVariant(card, variant)
+            folderRepository.setMemberships(card.id, variant, folderIds)
+        }
+    }
+
+    fun saveFolders(folderIds: Set<Long>) {
+        viewModelScope.launch { folderRepository.setMemberships(card.id, selectedVariant.value, folderIds) }
+    }
+
+    suspend fun createFolder(name: String): Long = folderRepository.create(name)
 
     fun addOrIncrement() {
         viewModelScope.launch {
