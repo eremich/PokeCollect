@@ -19,6 +19,8 @@ interface CollectionRepository {
     fun isInCollection(id: String): Flow<Boolean>
     fun getQuantity(id: String): Flow<Int>
     fun getCount(): Flow<Int>
+    /** Ids of cards owned in any variant. */
+    fun getOwnedCardIds(): Flow<Set<String>>
     fun getValue(): Flow<CollectionValue>
     suspend fun savePrice(cardId: String, variant: String, priceEur: Double?)
     /** Re-prices entries whose price is missing or older than a day. Failures are skipped quietly. */

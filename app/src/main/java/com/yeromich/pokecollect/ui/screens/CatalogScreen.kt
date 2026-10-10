@@ -1,5 +1,8 @@
 package com.yeromich.pokecollect.ui.screens
 
+import com.yeromich.pokecollect.domain.model.setIdOfCard
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +51,12 @@ fun CatalogScreen(
     viewModel: CatalogViewModel = hiltViewModel()
 ) {
     val query by viewModel.query.collectAsState()
+    val ownedIds by viewModel.ownedIds.collectAsStateWithLifecycle()
+    val setTotal by viewModel.setTotal.collectAsStateWithLifecycle()
+    val inSet = viewModel.setId != null
+    val ownedInSet = remember(ownedIds, viewModel.setId) {
+        viewModel.setId?.let { id -> ownedIds.count { setIdOfCard(it) == id } } ?: 0
+    }
     val cards = viewModel.cards.collectAsLazyPagingItems()
 
     Column(
@@ -77,6 +86,15 @@ fun CatalogScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+            val total = setTotal
+            if (inSet && total != null && total > 0) {
+                SetProgress(
+                    owned = ownedInSet,
+                    total = total,
+                    label = stringResource(R.string.catalog_progress, ownedInSet, total),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
                 )
             }
             TextField(
@@ -149,7 +167,12 @@ fun CatalogScreen(
                                 key = cards.itemKey { it.id }
                             ) { index ->
                                 cards[index]?.let { card ->
-                                    CardGridItem(card = card, onClick = { onCardClick(card) })
+                                    CardGridItem(
+                                        card = card,
+                                        onClick = { onCardClick(card) },
+                                        // Inside a set, cards still missing from the collection fade back.
+                                        dimmed = inSet && card.id !in ownedIds
+                                    )
                                 }
                             }
                             if (cards.loadState.append is LoadState.Loading) {

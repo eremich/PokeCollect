@@ -91,6 +91,9 @@ interface CollectedCardDao {
         deleteAllMemberships(cardId)
     }
 
+    @Query("SELECT DISTINCT id FROM collected_cards")
+    fun getOwnedIds(): Flow<List<String>>
+
     @Query("SELECT COUNT(*) FROM collected_cards")
     fun getCount(): Flow<Int>
 }

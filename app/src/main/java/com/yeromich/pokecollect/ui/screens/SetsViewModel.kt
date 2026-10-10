@@ -1,5 +1,7 @@
 package com.yeromich.pokecollect.ui.screens
 
+import com.yeromich.pokecollect.domain.model.setIdOfCard
+import com.yeromich.pokecollect.data.repository.CollectionRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeromich.pokecollect.data.repository.SetsRepository
@@ -13,8 +15,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SetsViewModel @Inject constructor(
-    setsRepository: SetsRepository
+    setsRepository: SetsRepository,
+    collectionRepository: CollectionRepository
 ) : ViewModel() {
+
+    /** How many different cards of each set the user owns, keyed by set id. */
+    val ownedBySet: StateFlow<Map<String, Int>> = collectionRepository.getOwnedCardIds()
+        .map { ids -> ids.groupingBy(::setIdOfCard).eachCount() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     /** A series name of null means the set belongs to no known era (promos, special releases). */
     data class SeriesGroup(val name: String?, val sets: List<CardSet>)

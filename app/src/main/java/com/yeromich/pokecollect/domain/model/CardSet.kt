@@ -9,3 +9,6 @@ data class CardSet(
     val logoUrl: String,
     val symbolUrl: String
 )
+
+/** TCGdex card ids are "<set id>-<number>", e.g. "me03-098" belongs to set "me03". */
+fun setIdOfCard(cardId: String): String = cardId.substringBeforeLast('-')

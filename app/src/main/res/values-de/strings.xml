@@ -92,4 +92,6 @@
     <string name="collection_empty_scan">Karte scannen</string>
     <string name="collection_empty_browse">Sets durchsuchen</string>
     <string name="folder_empty_title">Diese Sammlung ist leer</string>
+    <string name="sets_progress">%1$d / %2$d</string>
+    <string name="catalog_progress">%1$d / %2$d gesammelt</string>
 </resources>

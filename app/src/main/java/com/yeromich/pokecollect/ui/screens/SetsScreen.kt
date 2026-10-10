@@ -1,5 +1,9 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +60,7 @@ fun SetsScreen(
     viewModel: SetsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val ownedBySet by viewModel.ownedBySet.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalGrid(
@@ -94,7 +99,7 @@ fun SetsScreen(
                         )
                     }
                     items(group.sets, key = { set -> set.id }) { set ->
-                        SetTile(set = set, onClick = { onSetClick(set) })
+                        SetTile(set = set, owned = ownedBySet[set.id] ?: 0, onClick = { onSetClick(set) })
                     }
                 }
             }
@@ -129,7 +134,7 @@ private fun SetsHeader(onSearchClick: () -> Unit) {
 }
 
 @Composable
-private fun SetTile(set: CardSet, onClick: () -> Unit) {
+private fun SetTile(set: CardSet, owned: Int, onClick: () -> Unit) {
     // Some sets have no logo, and some logo URLs 404; both fall back to a monogram.
     var logoFailed by remember(set.id) { mutableStateOf(set.logoUrl.isEmpty()) }
 
@@ -174,13 +179,49 @@ private fun SetTile(set: CardSet, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(start = 2.dp, top = 10.dp)
             )
-            Text(
-                text = stringResource(R.string.sets_card_count, set.total),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                modifier = Modifier.padding(start = 2.dp, top = 2.dp)
+            // Untouched sets keep the plain count; a row of empty bars would only add noise.
+            if (owned > 0 && set.total > 0) {
+                SetProgress(owned = owned, total = set.total, modifier = Modifier.padding(start = 2.dp, top = 6.dp))
+            } else {
+                Text(
+                    text = stringResource(R.string.sets_card_count, set.total),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = 2.dp, top = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+/** Thin progress bar with "31 / 84"; turns teal with a tick once the set is complete. */
+@Composable
+fun SetProgress(owned: Int, total: Int, modifier: Modifier = Modifier, label: String? = null) {
+    val complete = owned >= total
+    val tint = if (complete) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth((owned.toFloat() / total).coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .clip(CircleShape)
+                    .background(tint)
             )
         }
+        Text(
+            text = (label ?: stringResource(R.string.sets_progress, owned, total)) + if (complete) " ✓" else "",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (complete) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }

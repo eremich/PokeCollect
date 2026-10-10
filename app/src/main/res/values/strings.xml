@@ -92,4 +92,6 @@
     <string name="collection_empty_scan">Scan a card</string>
     <string name="collection_empty_browse">Browse sets</string>
     <string name="folder_empty_title">This collection is empty</string>
+    <string name="sets_progress">%1$d / %2$d</string>
+    <string name="catalog_progress">%1$d / %2$d collected</string>
 </resources>

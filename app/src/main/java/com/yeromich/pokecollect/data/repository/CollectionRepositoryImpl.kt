@@ -42,6 +42,8 @@ class CollectionRepositoryImpl @Inject constructor(
 
     override fun getCount(): Flow<Int> = dao.getCount()
 
+    override fun getOwnedCardIds(): Flow<Set<String>> = dao.getOwnedIds().map { it.toSet() }
+
     override fun getValue(): Flow<CollectionValue> = dao.getValue()
 
     override suspend fun savePrice(cardId: String, variant: String, priceEur: Double?) =

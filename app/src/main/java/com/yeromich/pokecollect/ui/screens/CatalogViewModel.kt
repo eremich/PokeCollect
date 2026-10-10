@@ -1,5 +1,10 @@
 package com.yeromich.pokecollect.ui.screens
 
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import com.yeromich.pokecollect.data.repository.SetsRepository
+import com.yeromich.pokecollect.data.repository.CollectionRepository
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,11 +28,21 @@ import javax.inject.Inject
 @HiltViewModel
 class CatalogViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val repository: CardRepository
+    private val repository: CardRepository,
+    collectionRepository: CollectionRepository,
+    setsRepository: SetsRepository
 ) : ViewModel() {
+
+    val ownedIds: StateFlow<Set<String>> = collectionRepository.getOwnedCardIds()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
     // The scanner opens the catalog with empty set arguments; treat them as "no set".
     val setId: String? = savedStateHandle.get<String>("setId")?.takeIf { it.isNotBlank() }
+
+    /** Size of the open set, for the "31 / 84 collected" line; null outside a set. */
+    val setTotal: StateFlow<Int?> = setsRepository.getAllSets()
+        .map { result -> setId?.let { id -> result.getOrNull()?.firstOrNull { it.id == id }?.total } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val setName: String? = savedStateHandle.get<String>("setName")?.takeIf { it.isNotBlank() }
         ?.let { URLDecoder.decode(it, "UTF-8") }
 

@@ -1,5 +1,7 @@
 package com.yeromich.pokecollect.ui.components
 
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.ColorFilter
 import com.yeromich.pokecollect.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.graphicsLayer
@@ -35,6 +37,8 @@ private const val PRICE_TAG_ALPHA = 0.78f
 private const val SELECTED_SCALE = 0.92f
 private const val SELECT_MS = 160
 private const val UNSELECTED_FILL_ALPHA = 0.45f
+private const val DIMMED_ALPHA = 0.4f
+private val greyscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 /** A card tile; [priceLabel], when given, sits as a small tag in the bottom corner. */
 @Composable
@@ -45,7 +49,9 @@ fun CardGridItem(
     priceLabel: String? = null,
     onLongClick: (() -> Unit)? = null,
     /** null outside selection mode; otherwise whether this card is ticked. */
-    selected: Boolean? = null
+    selected: Boolean? = null,
+    /** Faded and colourless, for cards the user doesn't own yet. */
+    dimmed: Boolean = false
 ) {
     val scale by animateFloatAsState(if (selected == true) SELECTED_SCALE else 1f, tween(SELECT_MS), label = "selectScale")
     Box(
@@ -65,7 +71,9 @@ fun CardGridItem(
             modifier = Modifier
                 .fillMaxSize()
                 .gridShimmer(enabled = isFoilVariant(card.variant)),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            alpha = if (dimmed) DIMMED_ALPHA else 1f,
+            colorFilter = if (dimmed) greyscale else null
         )
         if (priceLabel != null) {
             Text(
