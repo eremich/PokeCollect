@@ -17,7 +17,7 @@
     <string name="catalog_empty">Nothing found</string>
     <string name="catalog_error_generic">Loading error</string>
     <string name="catalog_error_retry">Retry</string>
-    <string name="collection_empty_hint">Collection is empty. Find a card in the catalog and add it.</string>
+    <string name="collection_empty_hint">Scan a card with your camera, or find it in a set and tap Add.</string>
     <string name="detail_add_to_collection">Add to Collection</string>
     <string name="detail_in_collection">In Collection (×%d)</string>
     <string name="detail_add_more">Add Another</string>
@@ -71,7 +71,7 @@
     <string name="folder_delete_title">Delete “%1$s”?</string>
     <string name="folder_delete_body">The cards stay in your collection.</string>
     <string name="folder_meta">%1$d · %2$s</string>
-    <string name="folder_empty_hint">Nothing here yet. Open a card, tap Add, and pick this collection.</string>
+    <string name="folder_empty_hint">Open any card you own, tap Add or Edit, and tick this collection.</string>
     <string name="detail_add_to_title">Add %1$s to…</string>
     <string name="detail_folders_title">%1$s is in…</string>
     <string name="detail_add_confirm">Add</string>
@@ -79,4 +79,17 @@
     <string name="detail_in_folders">In: %1$s</string>
     <string name="detail_in_no_folder">Not in a collection yet</string>
     <string name="detail_edit_folders">Edit</string>
+    <string name="selection_count">%1$d selected</string>
+    <string name="selection_close">Cancel selection</string>
+    <string name="selection_delete">Delete %1$d</string>
+    <string name="selection_remove">Remove %1$d from this collection</string>
+    <string name="undo_deleted_one">1 card deleted</string>
+    <string name="undo_deleted_other">%1$d cards deleted</string>
+    <string name="undo_removed_one">1 card removed</string>
+    <string name="undo_removed_other">%1$d cards removed</string>
+    <string name="undo_action">Undo</string>
+    <string name="collection_empty_title">Start your collection</string>
+    <string name="collection_empty_scan">Scan a card</string>
+    <string name="collection_empty_browse">Browse sets</string>
+    <string name="folder_empty_title">This collection is empty</string>
 </resources>

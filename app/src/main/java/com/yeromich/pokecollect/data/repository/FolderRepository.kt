@@ -14,4 +14,6 @@ interface FolderRepository {
     suspend fun rename(folderId: Long, name: String)
     suspend fun delete(folderId: Long)
     suspend fun setMemberships(cardId: String, variant: String, folderIds: Set<Long>)
+    suspend fun removeFromFolder(folderId: Long, cards: List<Card>)
+    suspend fun addToFolder(folderId: Long, cards: List<Card>)
 }

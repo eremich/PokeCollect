@@ -72,6 +72,12 @@ interface FolderDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMemberships(rows: List<FolderCardEntity>)
 
+    @Query("SELECT * FROM folder_cards WHERE cardId = :cardId AND variant = :variant")
+    suspend fun getMemberships(cardId: String, variant: String): List<FolderCardEntity>
+
+    @Query("DELETE FROM folder_cards WHERE folderId = :folderId AND cardId = :cardId AND variant = :variant")
+    suspend fun removeMembership(folderId: Long, cardId: String, variant: String)
+
     @Query("DELETE FROM folder_cards WHERE cardId = :cardId AND variant = :variant")
     suspend fun clearMemberships(cardId: String, variant: String)
 

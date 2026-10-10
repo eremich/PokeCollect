@@ -17,7 +17,7 @@
     <string name="catalog_empty">Nichts gefunden</string>
     <string name="catalog_error_generic">Ladefehler</string>
     <string name="catalog_error_retry">Wiederholen</string>
-    <string name="collection_empty_hint">Sammlung ist leer. Finde eine Karte und füge sie hinzu.</string>
+    <string name="collection_empty_hint">Scanne eine Karte mit der Kamera oder finde sie in einem Set und tippe auf Hinzufügen.</string>
     <string name="detail_add_to_collection">Zur Sammlung hinzufügen</string>
     <string name="detail_in_collection">In der Sammlung (×%d)</string>
     <string name="detail_add_more">Noch hinzufügen</string>
@@ -71,7 +71,7 @@
     <string name="folder_delete_title">„%1$s“ löschen?</string>
     <string name="folder_delete_body">Die Karten bleiben in deiner Sammlung.</string>
     <string name="folder_meta">%1$d · %2$s</string>
-    <string name="folder_empty_hint">Noch leer. Öffne eine Karte, tippe auf Hinzufügen und wähle diese Sammlung.</string>
+    <string name="folder_empty_hint">Öffne eine deiner Karten, tippe auf Hinzufügen oder Bearbeiten und wähle diese Sammlung.</string>
     <string name="detail_add_to_title">%1$s hinzufügen zu…</string>
     <string name="detail_folders_title">%1$s ist in…</string>
     <string name="detail_add_confirm">Hinzufügen</string>
@@ -79,4 +79,17 @@
     <string name="detail_in_folders">In: %1$s</string>
     <string name="detail_in_no_folder">Noch in keiner Sammlung</string>
     <string name="detail_edit_folders">Bearbeiten</string>
+    <string name="selection_count">%1$d ausgewählt</string>
+    <string name="selection_close">Auswahl beenden</string>
+    <string name="selection_delete">%1$d löschen</string>
+    <string name="selection_remove">%1$d aus dieser Sammlung entfernen</string>
+    <string name="undo_deleted_one">1 Karte gelöscht</string>
+    <string name="undo_deleted_other">%1$d Karten gelöscht</string>
+    <string name="undo_removed_one">1 Karte entfernt</string>
+    <string name="undo_removed_other">%1$d Karten entfernt</string>
+    <string name="undo_action">Rückgängig</string>
+    <string name="collection_empty_title">Starte deine Sammlung</string>
+    <string name="collection_empty_scan">Karte scannen</string>
+    <string name="collection_empty_browse">Sets durchsuchen</string>
+    <string name="folder_empty_title">Diese Sammlung ist leer</string>
 </resources>

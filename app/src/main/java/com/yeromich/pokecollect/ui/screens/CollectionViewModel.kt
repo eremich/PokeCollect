@@ -22,6 +22,11 @@ import javax.inject.Inject
 
 enum class CollectionSort { Newest, MostValuable }
 
+/** Undo offer after a bulk action; [fromFolder] tells "deleted" apart from "removed from folder". */
+data class UndoOffer(val count: Int, val fromFolder: Boolean, internal val id: Long = System.nanoTime())
+
+fun Card.selectionKey(): String = "${id}_$variant"
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class CollectionViewModel @Inject constructor(
@@ -73,6 +78,60 @@ class CollectionViewModel @Inject constructor(
 
     fun selectFolder(folderId: Long?) {
         _selectedFolderId.value = folderId
+        clearSelection()
+    }
+
+    // Bulk selection, entered by long-pressing a card.
+    private val _selection = MutableStateFlow<Set<String>>(emptySet())
+    val selection: StateFlow<Set<String>> = _selection.asStateFlow()
+
+    fun startSelection(card: Card) {
+        _selection.value = setOf(card.selectionKey())
+    }
+
+    fun toggleSelection(card: Card) {
+        val key = card.selectionKey()
+        _selection.value = if (key in _selection.value) _selection.value - key else _selection.value + key
+    }
+
+    fun clearSelection() {
+        _selection.value = emptySet()
+    }
+
+    private val _undo = MutableStateFlow<UndoOffer?>(null)
+    val undo: StateFlow<UndoOffer?> = _undo.asStateFlow()
+    private var undoAction: (suspend () -> Unit)? = null
+
+    /** In "All cards" the selection leaves the collection; inside a folder it only leaves that folder. */
+    fun deleteSelected() {
+        val chosen = cards.value.filter { it.selectionKey() in _selection.value }
+        if (chosen.isEmpty()) return
+        val folderId = _selectedFolderId.value
+        clearSelection()
+        viewModelScope.launch {
+            if (folderId == null) {
+                val removed = collectionRepository.deleteEntries(chosen)
+                undoAction = { collectionRepository.restoreEntries(removed) }
+            } else {
+                folderRepository.removeFromFolder(folderId, chosen)
+                undoAction = { folderRepository.addToFolder(folderId, chosen) }
+            }
+            _undo.value = UndoOffer(count = chosen.size, fromFolder = folderId != null)
+        }
+    }
+
+    fun undoLast() {
+        val action = undoAction ?: return
+        undoAction = null
+        _undo.value = null
+        viewModelScope.launch { action() }
+    }
+
+    fun dismissUndo(offer: UndoOffer) {
+        if (_undo.value == offer) {
+            _undo.value = null
+            undoAction = null
+        }
     }
 
     fun createFolder(name: String) {

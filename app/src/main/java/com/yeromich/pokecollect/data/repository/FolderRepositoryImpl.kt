@@ -1,6 +1,7 @@
 package com.yeromich.pokecollect.data.repository
 
 import com.yeromich.pokecollect.data.local.CollectionValue
+import com.yeromich.pokecollect.data.local.FolderCardEntity
 import com.yeromich.pokecollect.data.local.FolderDao
 import com.yeromich.pokecollect.data.local.FolderEntity
 import com.yeromich.pokecollect.data.local.toDomain
@@ -45,6 +46,12 @@ class FolderRepositoryImpl @Inject constructor(
     override suspend fun rename(folderId: Long, name: String) = dao.rename(folderId, name.trim())
 
     override suspend fun delete(folderId: Long) = dao.delete(folderId)
+
+    override suspend fun removeFromFolder(folderId: Long, cards: List<Card>) =
+        cards.forEach { dao.removeMembership(folderId, it.id, it.variant) }
+
+    override suspend fun addToFolder(folderId: Long, cards: List<Card>) =
+        dao.insertMemberships(cards.map { FolderCardEntity(folderId, it.id, it.variant) })
 
     override suspend fun setMemberships(cardId: String, variant: String, folderIds: Set<Long>) =
         dao.setMemberships(cardId, variant, folderIds)

@@ -1,5 +1,7 @@
 package com.yeromich.pokecollect.ui
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.remember
@@ -142,11 +144,12 @@ fun PokeCollectApp() {
     val showBottomBar = currentDestination?.route == Screen.Collection.route ||
             currentDestination?.route == Screen.Sets.route
     val hazeState = rememberHazeState()
+    var collectionSelecting by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
             AnimatedVisibility(
-                visible = showBottomBar,
+                visible = showBottomBar && !collectionSelecting,
                 enter = slideInVertically(tween(BAR_MS, easing = LinearOutSlowInEasing)) { it },
                 exit = slideOutVertically(tween(BAR_MS, easing = FastOutLinearInEasing)) { it }
             ) {
@@ -187,7 +190,16 @@ fun PokeCollectApp() {
             composable(Screen.Collection.route) {
                 CollectionScreen(
                     bottomPadding = barHeight,
-                    onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") }
+                    onCardClick = { card -> navController.navigate("card/${card.toEncodedJson()}") },
+                    onSelectionModeChange = { collectionSelecting = it },
+                    onScanClick = { navController.navigate(Screen.Scanner.route) },
+                    onBrowseSets = {
+                        navController.navigate(Screen.Sets.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable(Screen.Scanner.route) {

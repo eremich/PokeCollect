@@ -2,6 +2,7 @@ package com.yeromich.pokecollect.data.repository
 
 import com.yeromich.pokecollect.data.local.CollectedCardDao
 import com.yeromich.pokecollect.data.local.CollectionValue
+import com.yeromich.pokecollect.data.local.FolderDao
 import com.yeromich.pokecollect.data.remote.CardDetailsCache
 import com.yeromich.pokecollect.data.remote.TcgdexApi
 import com.yeromich.pokecollect.data.local.toDomain
@@ -25,6 +26,7 @@ private const val PRICE_FETCH_PARALLELISM = 6
 
 class CollectionRepositoryImpl @Inject constructor(
     private val dao: CollectedCardDao,
+    private val folderDao: FolderDao,
     @param:Named("tcgdex") private val tcgdexApi: TcgdexApi,
     private val detailsCache: CardDetailsCache
 ) : CollectionRepository {
@@ -93,4 +95,16 @@ class CollectionRepositoryImpl @Inject constructor(
         }
 
     override suspend fun remove(id: String) = dao.deleteCard(id)
+
+    override suspend fun deleteEntries(cards: List<Card>): RemovedEntries {
+        val entries = cards.mapNotNull { dao.findByIdAndVariant(it.id, it.variant) }
+        val memberships = entries.flatMap { folderDao.getMemberships(it.id, it.variant) }
+        entries.forEach { dao.deleteEntry(it.id, it.variant) }
+        return RemovedEntries(entries, memberships)
+    }
+
+    override suspend fun restoreEntries(removed: RemovedEntries) {
+        removed.entries.forEach { dao.upsert(it) }
+        folderDao.insertMemberships(removed.memberships)
+    }
 }
