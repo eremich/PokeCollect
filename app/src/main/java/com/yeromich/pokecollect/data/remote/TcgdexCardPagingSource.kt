@@ -1,26 +1,39 @@
 package com.yeromich.pokecollect.data.remote
 
+import java.util.Locale
+import java.text.Collator
+import com.yeromich.pokecollect.domain.model.CardOrder
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.yeromich.pokecollect.domain.model.Card
 import com.yeromich.pokecollect.domain.model.toDomain
 
+// German names: Ä sorts with A, Ü with U, the way a German reader expects.
+private val germanCollator: Collator = Collator.getInstance(Locale.GERMAN)
+
 class TcgdexCardPagingSource(
     private val api: TcgdexApi,
     private val query: String?,
-    private val setId: String?
+    private val setId: String?,
+    private val order: CardOrder
 ) : PagingSource<Int, Card>() {
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Card> {
         return try {
             val cards: List<TcgdexCardBriefDto> = when {
-                setId != null -> api.getSet(setId).cards
+                // A set arrives whole, so the search box filters it here.
+                setId != null -> api.getSet(setId).cards.filter { query.isNullOrBlank() || it.name.contains(query.trim(), ignoreCase = true) }
                 query != null && query.isNotBlank() -> api.searchCards(name = query)
                 else -> emptyList()
             }
             val setName = setId ?: ""
+            val ordered = when (order) {
+                // TCGdex already lists set cards by their number.
+                CardOrder.Number -> cards
+                CardOrder.Name -> cards.sortedWith(compareBy(germanCollator) { it.name })
+            }
             LoadResult.Page(
-                data = cards.map { it.toDomain(setName = setName) },
+                data = ordered.map { it.toDomain(setName = setName) },
                 prevKey = null,
                 nextKey = null
             )

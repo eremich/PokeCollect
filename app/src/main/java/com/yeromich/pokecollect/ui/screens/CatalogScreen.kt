@@ -1,5 +1,9 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.material3.TextButton
+import com.yeromich.pokecollect.ui.components.SadPokeball
+import com.yeromich.pokecollect.ui.components.ChoicePills
+import com.yeromich.pokecollect.domain.model.CardOrder
 import com.yeromich.pokecollect.domain.model.setIdOfCard
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
@@ -53,6 +57,7 @@ fun CatalogScreen(
     val query by viewModel.query.collectAsState()
     val ownedIds by viewModel.ownedIds.collectAsStateWithLifecycle()
     val setTotal by viewModel.setTotal.collectAsStateWithLifecycle()
+    val order by viewModel.order.collectAsStateWithLifecycle()
     val inSet = viewModel.setId != null
     val ownedInSet = remember(ownedIds, viewModel.setId) {
         viewModel.setId?.let { id -> ownedIds.count { setIdOfCard(it) == id } } ?: 0
@@ -114,6 +119,17 @@ fun CatalogScreen(
                     unfocusedIndicatorColor = Color.Transparent
                 )
             )
+            if (inSet) {
+                ChoicePills(
+                    options = listOf(
+                        CardOrder.Number to stringResource(R.string.catalog_order_number),
+                        CardOrder.Name to stringResource(R.string.catalog_order_name)
+                    ),
+                    selected = order,
+                    onSelect = viewModel::onOrderChange,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                )
+            }
 
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
@@ -140,19 +156,22 @@ fun CatalogScreen(
                     }
 
                     cards.itemCount == 0 && cards.loadState.refresh is LoadState.NotLoading -> {
-                        val promptText = if (query.isBlank() && viewModel.setId == null)
-                            stringResource(R.string.catalog_search_prompt)
-                        else
-                            stringResource(R.string.catalog_empty)
-                        Text(
-                            text = promptText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .padding(horizontal = 32.dp)
-                        )
+                        if (query.isBlank() && viewModel.setId == null) {
+                            Text(
+                                text = stringResource(R.string.catalog_search_prompt),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(horizontal = 32.dp)
+                            )
+                        } else {
+                            NothingFound(
+                                onClear = { viewModel.onQueryChange("") },
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
                     }
 
                     else -> {
@@ -170,8 +189,7 @@ fun CatalogScreen(
                                     CardGridItem(
                                         card = card,
                                         onClick = { onCardClick(card) },
-                                        // Inside a set, cards still missing from the collection fade back.
-                                        dimmed = inSet && card.id !in ownedIds
+                                        owned = card.id in ownedIds
                                     )
                                 }
                             }
@@ -191,6 +209,33 @@ fun CatalogScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Empty search: a sad Pokéball, what happened, and the one way out. */
+@Composable
+private fun NothingFound(onClear: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.padding(horizontal = 32.dp, vertical = 24.dp)
+    ) {
+        SadPokeball()
+        Text(
+            text = stringResource(R.string.catalog_empty),
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 20.dp)
+        )
+        Text(
+            text = stringResource(R.string.catalog_empty_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 6.dp)
+        )
+        TextButton(onClick = onClear, modifier = Modifier.padding(top = 8.dp)) {
+            Text(stringResource(R.string.catalog_clear_search), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

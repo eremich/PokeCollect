@@ -15,3 +15,6 @@ data class Card(
     /** Last known Cardmarket trend in euros; only known for cards in the collection. */
     val priceEur: Double? = null
 )
+
+/** How a list of catalog cards is ordered. */
+enum class CardOrder { Number, Name }

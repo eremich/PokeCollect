@@ -1,7 +1,10 @@
 package com.yeromich.pokecollect.ui.components
 
-import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import com.yeromich.pokecollect.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.graphicsLayer
@@ -37,8 +40,6 @@ private const val PRICE_TAG_ALPHA = 0.78f
 private const val SELECTED_SCALE = 0.92f
 private const val SELECT_MS = 160
 private const val UNSELECTED_FILL_ALPHA = 0.45f
-private const val DIMMED_ALPHA = 0.4f
-private val greyscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 /** A card tile; [priceLabel], when given, sits as a small tag in the bottom corner. */
 @Composable
@@ -50,8 +51,8 @@ fun CardGridItem(
     onLongClick: (() -> Unit)? = null,
     /** null outside selection mode; otherwise whether this card is ticked. */
     selected: Boolean? = null,
-    /** Faded and colourless, for cards the user doesn't own yet. */
-    dimmed: Boolean = false
+    /** Shows a small tick: the card is already in the collection. */
+    owned: Boolean = false
 ) {
     val scale by animateFloatAsState(if (selected == true) SELECTED_SCALE else 1f, tween(SELECT_MS), label = "selectScale")
     Box(
@@ -71,9 +72,7 @@ fun CardGridItem(
             modifier = Modifier
                 .fillMaxSize()
                 .gridShimmer(enabled = isFoilVariant(card.variant)),
-            contentScale = ContentScale.Crop,
-            alpha = if (dimmed) DIMMED_ALPHA else 1f,
-            colorFilter = if (dimmed) greyscale else null
+            contentScale = ContentScale.Crop
         )
         if (priceLabel != null) {
             Text(
@@ -86,6 +85,9 @@ fun CardGridItem(
                     .background(Ink.copy(alpha = PRICE_TAG_ALPHA), CircleShape)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             )
+        }
+        if (owned && selected == null) {
+            OwnedCorner(modifier = Modifier.align(Alignment.BottomEnd))
         }
         if (selected != null) {
             SelectionMark(selected = selected, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
@@ -107,5 +109,39 @@ private fun SelectionMark(selected: Boolean, modifier: Modifier = Modifier) {
         if (selected) {
             Icon(painterResource(R.drawable.ic_check_bold), contentDescription = null, tint = Ink, modifier = Modifier.size(14.dp))
         }
+    }
+}
+
+/**
+ * A coral folded corner with a tick, bottom-right, on cards the user owns. The card itself keeps
+ * full colour, so owned and missing cards look equally tappable.
+ */
+@Composable
+private fun OwnedCorner(modifier: Modifier = Modifier) {
+    val label = stringResource(R.string.card_owned)
+    val coral = MaterialTheme.colorScheme.primary
+    Box(
+        contentAlignment = Alignment.BottomEnd,
+        modifier = modifier
+            .size(34.dp)
+            .semantics { contentDescription = label }
+            .drawBehind {
+                val corner = Path().apply {
+                    moveTo(size.width, 0f)
+                    lineTo(size.width, size.height)
+                    lineTo(0f, size.height)
+                    close()
+                }
+                drawPath(corner, coral)
+            }
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_check_bold),
+            contentDescription = null,
+            tint = Ink,
+            modifier = Modifier
+                .padding(end = 4.dp, bottom = 4.dp)
+                .size(12.dp)
+        )
     }
 }

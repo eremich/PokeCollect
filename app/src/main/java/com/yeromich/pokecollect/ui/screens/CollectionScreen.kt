@@ -1,5 +1,6 @@
 package com.yeromich.pokecollect.ui.screens
 
+import com.yeromich.pokecollect.ui.components.ChoicePills
 import androidx.compose.foundation.layout.fillMaxWidth
 import kotlinx.coroutines.delay
 import androidx.compose.ui.res.painterResource
@@ -21,13 +22,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -132,7 +129,15 @@ fun CollectionScreen(
             // Pick the collection first, then how to order it.
             if (cards.size > 1) {
                 item(key = "sort", span = { GridItemSpan(maxLineSpan) }) {
-                    SortPills(sort = sort, onSortChange = viewModel::setSort, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+                    ChoicePills(
+                        options = listOf(
+                            CollectionSort.Newest to stringResource(R.string.collection_sort_newest),
+                            CollectionSort.MostValuable to stringResource(R.string.collection_sort_valuable)
+                        ),
+                        selected = sort,
+                        onSelect = viewModel::setSort,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
                 }
             }
             if (cards.isEmpty()) {
@@ -389,35 +394,6 @@ private fun CollectionHeader(
 @Composable
 private fun countLabel(count: Int, @StringRes one: Int, @StringRes other: Int): String =
     stringResource(if (count == 1) one else other)
-
-@Composable
-private fun SortPills(sort: CollectionSort, onSortChange: (CollectionSort) -> Unit, modifier: Modifier = Modifier) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier.selectableGroup()) {
-        SortPill(stringResource(R.string.collection_sort_newest), sort == CollectionSort.Newest) {
-            onSortChange(CollectionSort.Newest)
-        }
-        SortPill(stringResource(R.string.collection_sort_valuable), sort == CollectionSort.MostValuable) {
-            onSortChange(CollectionSort.MostValuable)
-        }
-    }
-}
-
-@Composable
-private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val background by animateColorAsState(if (selected) colors.primaryContainer else colors.surfaceContainerHigh, label = "pillBg")
-    val content by animateColorAsState(if (selected) colors.primary else colors.onSurfaceVariant, label = "pillFg")
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        color = content,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(background)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    )
-}
 
 @Composable
 private fun ValueStat(totalEur: Double) {

@@ -1,5 +1,7 @@
 package com.yeromich.pokecollect.ui.screens
 
+import kotlinx.coroutines.flow.combine
+import com.yeromich.pokecollect.domain.model.CardOrder
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,15 +54,22 @@ class CatalogViewModel @Inject constructor(
     private val _query = MutableStateFlow(initialQuery)
     val query: StateFlow<String> = _query.asStateFlow()
 
-    val cards: Flow<PagingData<Card>> = _query
-        .debounce(400L)
-        .flatMapLatest { q ->
+    private val _order = MutableStateFlow(CardOrder.Number)
+    val order: StateFlow<CardOrder> = _order.asStateFlow()
+
+    val cards: Flow<PagingData<Card>> = combine(_query.debounce(400L), _order) { q, order -> q to order }
+        .flatMapLatest { (q, order) ->
             repository.getCardsPaged(
                 query = q.ifBlank { null },
-                setId = setId
+                setId = setId,
+                order = order
             )
         }
         .cachedIn(viewModelScope)
+
+    fun onOrderChange(order: CardOrder) {
+        _order.value = order
+    }
 
     fun onQueryChange(q: String) {
         _query.value = q

@@ -94,4 +94,9 @@
     <string name="folder_empty_title">This collection is empty</string>
     <string name="sets_progress">%1$d / %2$d</string>
     <string name="catalog_progress">%1$d / %2$d collected</string>
+    <string name="catalog_order_number">Number</string>
+    <string name="catalog_order_name">A–Z</string>
+    <string name="card_owned">In your collection</string>
+    <string name="catalog_empty_hint">Try another name, or check the spelling.</string>
+    <string name="catalog_clear_search">Clear search</string>
 </resources>
