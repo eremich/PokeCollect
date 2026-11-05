@@ -99,4 +99,5 @@
     <string name="card_owned">In your collection</string>
     <string name="catalog_empty_hint">Try another name, or check the spelling.</string>
     <string name="catalog_clear_search">Clear search</string>
+    <string name="scanner_not_listed">Not here? Search by name</string>
 </resources>

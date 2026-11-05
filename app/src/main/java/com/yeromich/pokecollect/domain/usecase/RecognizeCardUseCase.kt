@@ -1,5 +1,11 @@
 package com.yeromich.pokecollect.domain.usecase
 
+import androidx.exifinterface.media.ExifInterface
+import android.graphics.Matrix
+import android.graphics.Bitmap
+import com.yeromich.pokecollect.data.remote.CardNameIndex
+import com.yeromich.pokecollect.domain.model.nameWords
+import com.yeromich.pokecollect.domain.model.nameQueries
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -27,25 +33,36 @@ import javax.inject.Named
 import kotlin.math.abs
 
 sealed class RecognitionResult {
-    data class Success(val candidates: List<Card>) : RecognitionResult()
+    /** [query] is the name that was read, offered for a manual search if none of the candidates fit. */
+    data class Success(val candidates: List<Card>, val query: String) : RecognitionResult()
     data class NotFound(val extractedName: String?, val extractedNumber: String?) : RecognitionResult()
     data class Error(val message: String) : RecognitionResult()
 }
 
 /** What OCR could read off the photo. Any field but the name may be missing. */
 private data class Reading(
-    val name: String,
+    /** Name candidates, most likely first: OCR sometimes ranks a nearby line above the stylised name. */
+    val names: List<String>,
     val hp: Int?,
     val number: String?,
     val megaHint: Boolean,
     val exHint: Boolean,
-    val compactText: String
+    val compactText: String,
+    /** Digits read near the collector number (O and l fixed), checked against each print's number. */
+    val numberDigits: String = ""
 )
+
+// Small print near the name that is never the name itself.
+private val notAName = Regex("(?i)^\\s*(entwickelt|evolves|die mega|the mega|phase|basis|basic|stage|stufe)")
+// Promo numbering: set code, language, number, e.g. "MEP DE 035".
+private val promoNumber = Regex("""\b(?:DE|EN|FR|IT|ES|PT|NL)\s+(\d{2,3})\b""")
+private val formOfLine = Regex("(?i)form\\s+(?:von|of)\\s+([\\p{L}][\\p{L}-]{2,})")
 
 class RecognizeCardUseCase @Inject constructor(
     private val cardRepository: CardRepository,
     @param:Named("tcgdex") private val tcgdexApi: TcgdexApi,
     private val detailsCache: CardDetailsCache,
+    private val nameIndex: CardNameIndex,
     @param:ApplicationContext private val context: Context
 ) {
     operator fun invoke(imageFile: File): Flow<RecognitionResult> = flow {
@@ -55,19 +72,31 @@ class RecognizeCardUseCase @Inject constructor(
             val image = InputImage.fromFilePath(context, Uri.fromFile(imageFile))
             val visionText = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(image).await()
 
-            val reading = read(visionText, bitmap.height)
-            android.util.Log.d("Recognition", "reading=${reading?.copy(compactText = "")}")
-            if (reading == null) {
+            val firstPass = read(visionText, bitmap.height)
+            if (firstPass == null) {
                 emit(RecognitionResult.NotFound(null, null))
                 return@flow
             }
+            // The collector number is tiny; read it again from an enlarged crop of the card's corner.
+            val reading = if (firstPass.number != null) firstPass
+            else readNumberUpClose(imageFile, visionText)?.let { closeUp ->
+                firstPass.copy(number = collectorNumber(closeUp), numberDigits = closeUp)
+            } ?: firstPass
+            android.util.Log.d("Recognition", "reading=${reading.copy(compactText = "")}")
 
-            searchWithFallbacks(reading.name).fold(
+            var result: Result<List<Card>> = Result.success(emptyList())
+            var usedName = reading.names.first()
+            for (name in reading.names) {
+                result = searchWithFallbacks(name)
+                usedName = name
+                if (result.isFailure || !result.getOrNull().isNullOrEmpty()) break
+            }
+            result.fold(
                 onSuccess = { cards ->
                     val ranked = rank(cards, reading)
-                    android.util.Log.d("Recognition", "found=${cards.size} kept=${ranked.size}")
-                    if (ranked.isEmpty()) emit(RecognitionResult.NotFound(reading.name, reading.number))
-                    else emit(RecognitionResult.Success(ranked))
+                    android.util.Log.d("Recognition", "name=$usedName found=${cards.size} kept=${ranked.size}")
+                    if (ranked.isEmpty()) emit(RecognitionResult.NotFound(reading.names.first(), reading.number))
+                    else emit(RecognitionResult.Success(ranked, usedName))
                 },
                 onFailure = { emit(RecognitionResult.Error(it.message ?: "Search failed")) }
             )
@@ -79,36 +108,102 @@ class RecognizeCardUseCase @Inject constructor(
     private fun read(text: Text, imageHeight: Int): Reading? {
         val blocks = text.textBlocks.filter { it.boundingBox != null }
 
-        // The name is the tallest wordy block in the top part of the photo.
-        val (nameBlock, rawName) = blocks
-            .filter { it.boundingBox!!.top < imageHeight * NAME_ZONE }
+        // Name candidates: wordy one-line blocks in the top part, tallest first, minus the small
+        // print around the name ("Entwickelt sich aus …", "Phase 2") that OCR sometimes prefers.
+        val candidates = blocks
+            .filter { it.boundingBox!!.top < imageHeight * NAME_ZONE && it.lines.size == 1 }
             .map { it to cleanName(it.text) }
-            .filter { (block, cleaned) -> cleaned.length > 2 && block.lines.size == 1 }
-            .maxByOrNull { (block, _) -> block.boundingBox!!.height() }
-            ?: return null
-        val nameTop = nameBlock.boundingBox!!.top
+            .filter { (block, cleaned) -> cleaned.length > 2 && !notAName.containsMatchIn(block.text) }
+            .sortedByDescending { (block, _) -> block.boundingBox!!.height() }
+            .take(MAX_NAME_CANDIDATES)
+        // "Die Mega-entwickelte Form von Fennexis" names the Pokémon even when the title is unreadable.
+        val formOf = formOfLine.find(text.text)?.groupValues?.get(1)?.let { base ->
+            if (text.text.contains("mega", ignoreCase = true)) "Mega $base" else base
+        }
+        val names = (candidates.map { it.second } + listOfNotNull(formOf)).distinct()
+        if (names.isEmpty()) return null
+        val first = names.first()
+        val nameTop = candidates.firstOrNull()?.first?.boundingBox?.top
 
         // HP sits on the same line as the name, often read without its "KP" label ("„70").
-        val hp = blocks
-            .filter { it != nameBlock && abs(it.boundingBox!!.top - nameTop) < imageHeight * SAME_LINE }
-            .firstNotNullOfOrNull { block ->
-                Regex("""\d{2,3}""").findAll(block.text).map { it.value.toInt() }
-                    .firstOrNull { it in HP_RANGE && it % 10 == 0 }
-            }
+        val hp = nameTop?.let { top ->
+            blocks
+                .filter { it != candidates.first().first && abs(it.boundingBox!!.top - top) < imageHeight * SAME_LINE }
+                .firstNotNullOfOrNull { block ->
+                    Regex("""\d{2,3}""").findAll(block.text).map { it.value.toInt() }
+                        .firstOrNull { it in HP_RANGE && it % 10 == 0 }
+                }
+        }
 
         val number = blocks
             .filter { it.boundingBox!!.top > imageHeight * NUMBER_ZONE }
-            .firstNotNullOfOrNull { Regex("""(\d{1,3})\s*/\s*(\d{1,3})""").find(it.text)?.groupValues?.get(1) }
+            .firstNotNullOfOrNull { collectorNumber(it.text) }
 
         return Reading(
-            name = rawName.replace(Regex("(?i)\\s*(ex|GX|V|VMAX|VSTAR|X)$"), "").trim(),
+            names = names,
             hp = hp,
             number = number,
-            // The Mega symbol in front of the name reads as a lone "m".
-            megaHint = rawName.split(Regex("\\s+")).firstOrNull().equals("m", ignoreCase = true),
-            exHint = hp != null && hp >= EX_MIN_HP,
+            // The Mega symbol often reads as a lone "m"; newer cards spell "Mega" out.
+            megaHint = nameWords(first).firstOrNull()?.lowercase() in setOf("m", "mega"),
+            exHint = (hp != null && hp >= EX_MIN_HP) || nameWords(first).any { it.equals("ex", ignoreCase = true) },
             compactText = compact(text.text)
         )
+    }
+
+    /**
+     * Second look at the collector number ("022/132"): crop the bottom-left corner of the card,
+     * found from where the first pass saw text, enlarge it and run OCR on just that.
+     */
+    private suspend fun readNumberUpClose(imageFile: File, text: Text): String? = runCatching {
+        val boxes = text.textBlocks.mapNotNull { it.boundingBox }
+        if (boxes.isEmpty()) return null
+        val photo = uprightBitmap(imageFile) ?: return null
+        val left = boxes.minOf { it.left }
+        val right = boxes.maxOf { it.right }
+        val bottom = boxes.maxOf { it.bottom }
+        val top = boxes.minOf { it.top }
+        val cardWidth = right - left
+        val cardHeight = bottom - top
+        val crop = android.graphics.Rect(
+            (left - cardWidth * 0.04f).toInt().coerceAtLeast(0),
+            // Generous on purpose: when the copyright line isn't read, "bottom" lands a little high.
+            (bottom - cardHeight * 0.22f).toInt().coerceAtLeast(0),
+            (left + cardWidth * 0.6f).toInt().coerceAtMost(photo.width),
+            (bottom + cardHeight * 0.10f).toInt().coerceAtMost(photo.height)
+        )
+        if (crop.width() <= 0 || crop.height() <= 0) return null
+        val corner = Bitmap.createBitmap(photo, crop.left, crop.top, crop.width(), crop.height())
+        val enlarged = Bitmap.createScaledBitmap(corner, corner.width * NUMBER_ZOOM, corner.height * NUMBER_ZOOM, true)
+        val closeUp = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            .process(InputImage.fromBitmap(enlarged, 0)).await()
+        fixDigits(closeUp.text).also { android.util.Log.d("Recognition", "closeUp='${it.take(80)}'") }
+    }.getOrNull()
+
+    private fun fixDigits(raw: String): String =
+        raw.replace(Regex("(?<=[0-9OolI])[Oo](?=[0-9OolI/])|(?<=/)[Oo]|[Oo](?=[0-9]{1,2}\\s*/)|\\b[Oo](?=[0-9]{2})"), "0")
+            .replace(Regex("(?<=[0-9])[lI]|[lI](?=[0-9])"), "1")
+
+    /** The photo turned the way it was taken; ML Kit's text boxes use this orientation. */
+    private fun uprightBitmap(file: File): Bitmap? {
+        val raw = BitmapFactory.decodeFile(file.absolutePath) ?: return null
+        val rotation = when (ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> return raw
+        }
+        return Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, Matrix().apply { postRotate(rotation) }, true)
+    }
+
+    /**
+     * The collector number: "022/132" → "022", or for promos without a set size, the number after
+     * the language code ("MEP DE O35" → "035"). Forgives OCR reading O for 0 and l or I for 1.
+     */
+    private fun collectorNumber(raw: String): String? {
+        val fixed = raw.replace(Regex("(?<=[0-9OolI])[Oo](?=[0-9OolI/])|(?<=/)[Oo]|[Oo](?=[0-9]{1,2}\\s*/)|\\b[Oo](?=[0-9]{2}\\b)"), "0")
+            .replace(Regex("(?<=[0-9])[lI]|[lI](?=[0-9])"), "1")
+        return Regex("""(\d{1,3})\s*/\s*(\d{2,3})""").find(fixed)?.groupValues?.get(1)
+            ?: promoNumber.find(fixed)?.groupValues?.get(1)
     }
 
     /**
@@ -116,18 +211,18 @@ class RecognizeCardUseCase @Inject constructor(
      * then without 1–2 letter fragments, then the longest word, and keep the first hit.
      */
     private suspend fun searchWithFallbacks(name: String): Result<List<Card>> {
-        val words = name.split(Regex("\\s+")).filter { it.isNotBlank() }
-        val queries = listOfNotNull(
-            name,
-            words.filter { it.length > 2 }.joinToString(" ").ifBlank { null },
-            words.maxByOrNull { it.length }
-        ).distinct()
         var last: Result<List<Card>> = Result.success(emptyList())
-        for (query in queries) {
+        for (query in nameQueries(name)) {
             last = cardRepository.searchCards(query, SEARCH_LIMIT)
             if (last.isFailure || !last.getOrNull().isNullOrEmpty()) return last
         }
-        return last
+        // OCR slipped a letter ("Fenneis" for "Fennexis"): look up the closest real names instead.
+        val near = nameIndex.closest(name)
+        android.util.Log.d("Recognition", "fuzzy=$near")
+        if (near.isEmpty()) return last
+        return runCatching {
+            near.flatMap { cardRepository.searchCards(it, SEARCH_LIMIT).getOrThrow() }.distinctBy { it.id }
+        }
     }
 
     /**
@@ -142,13 +237,16 @@ class RecognizeCardUseCase @Inject constructor(
         val kept = if (best > 0) scored.filter { it.second == best } else scored
         return kept
             .sortedByDescending { (card, _) -> nameHints(card.name, reading) }
-            .map { it.first }
+            .map { (card, _) -> details[card.id]?.set?.name?.let { card.copy(setName = it) } ?: card }
             .take(MAX_CANDIDATES)
     }
 
     private fun score(card: Card, details: TcgdexCardDto?, reading: Reading): Int {
         var score = 0
-        if (reading.number != null && card.number.trimStart('0') == reading.number.trimStart('0')) score += NUMBER_WEIGHT
+        val exactNumber = reading.number != null && card.number.trimStart('0') == reading.number.trimStart('0')
+        // Promo corners read messily ("MEPD0 0352"); the print's own number showing up there is enough.
+        val numberSeen = card.number.length >= 3 && card.number.all { it.isDigit() } && card.number in reading.numberDigits
+        if (exactNumber || numberSeen) score += NUMBER_WEIGHT
         if (details == null) return score
         if (reading.hp != null && details.hp == reading.hp) score += HP_WEIGHT
         details.attacks.orEmpty().forEach { attack ->
@@ -173,7 +271,7 @@ class RecognizeCardUseCase @Inject constructor(
         }.awaitAll().filterNotNull().associateBy { it.id }
     }
 
-    private fun cleanName(raw: String): String = raw
+    private fun cleanName(raw: String): String = nameWords(raw).joinToString(" ")
         .replace(Regex("(?i)(PHASE\\s*\\d?|BASIS|BASIC|STAGE\\s*\\d?|KP|HP|\\d+|[^\\p{L}\\s])"), "")
         .trim()
 
@@ -196,6 +294,8 @@ class RecognizeCardUseCase @Inject constructor(
 
     private companion object {
         const val NAME_ZONE = 0.45f
+        const val MAX_NAME_CANDIDATES = 3
+        const val NUMBER_ZOOM = 3
         const val NUMBER_ZONE = 0.65f
         const val SAME_LINE = 0.04f
         val HP_RANGE = 30..340

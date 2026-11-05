@@ -1,5 +1,6 @@
 package com.yeromich.pokecollect.data.repository
 
+import com.yeromich.pokecollect.data.remote.CardNameIndex
 import com.yeromich.pokecollect.domain.model.CardOrder
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -13,12 +14,13 @@ import javax.inject.Inject
 import javax.inject.Named
 
 class CardRepositoryImpl @Inject constructor(
-    @param:Named("tcgdex") private val tcgdexApi: TcgdexApi
+    @param:Named("tcgdex") private val tcgdexApi: TcgdexApi,
+    private val nameIndex: CardNameIndex
 ) : CardRepository {
 
     override fun getCardsPaged(query: String?, setId: String?, order: CardOrder): Flow<PagingData<Card>> = Pager(
         config = PagingConfig(pageSize = 50, enablePlaceholders = false),
-        pagingSourceFactory = { TcgdexCardPagingSource(tcgdexApi, query, setId, order) }
+        pagingSourceFactory = { TcgdexCardPagingSource(tcgdexApi, nameIndex, query, setId, order) }
     ).flow
 
     override suspend fun searchCards(query: String, pageSize: Int): Result<List<Card>> =

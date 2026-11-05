@@ -1,5 +1,6 @@
 package com.yeromich.pokecollect.ui.screens
 
+import androidx.compose.material3.TextButton
 import com.yeromich.pokecollect.ui.theme.Paper
 import com.yeromich.pokecollect.ui.theme.Ink
 import com.yeromich.pokecollect.ui.theme.Coral
@@ -446,7 +447,8 @@ private fun RecognizedContent(
                 if (result.candidates.size == 1) {
                     LaunchedEffect(Unit) { onCardSelected(result.candidates.first()) }
                 } else if (showSheet) {
-                    ModalBottomSheet(onDismissRequest = { showSheet = false }) {
+                    // Closing the picker without choosing means "try again", never a dead photo.
+                    ModalBottomSheet(onDismissRequest = onRetake) {
                         Text(
                             stringResource(R.string.scanner_found_candidates, result.candidates.size),
                             style = MaterialTheme.typography.titleMedium,
@@ -470,6 +472,12 @@ private fun RecognizedContent(
                                     modifier = Modifier.clickable { onCardSelected(card) }
                                 )
                             }
+                        }
+                        TextButton(
+                            onClick = { onSearchManual(result.query) },
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Text(stringResource(R.string.scanner_not_listed), style = MaterialTheme.typography.labelLarge)
                         }
                         Spacer(Modifier.height(16.dp))
                     }
